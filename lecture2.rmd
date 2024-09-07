@@ -1,0 +1,258 @@
+---
+title: "Lecture2_2024_Overview: In R"
+author: "Katrina Bazemore, MPH"
+date: "2024-08-29"
+output: html_document
+---
+
+This code was written based on Stata code provided by Dr. Justine Shults, using reference code written by Dr. Erin Schnellinger, and using ChatGPT. The outputs approximate outputs of the Stata code.
+
+Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Change this line to your working directory - where the bmiz datafile is saved
+knitr::opts_knit$set(root.dir = "C:/Users/kbazemo/Box/EPID 6210/Data")
+```
+
+Loading necessary libraries
+```{r, eval=TRUE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(geepack)
+
+#if libraries not already installed, use <install.packages("dplyr")> replacing dplyr with the package name
+```
+
+
+Examples using the auto dataset - pending access to this data
+```{r}
+#capture sysuse auto, clear
+#regress price mpg
+#glm price mpg, family(gaussian)
+
+# GLM for price ~ mpg using linear regression
+#model_reg <- lm(price ~ mpg, data = auto)
+#summary(model_reg)
+
+# GLM with gaussian family
+#model_glm <- glm(price ~ mpg, family = gaussian, data = auto)
+#summary(model_glm)
+```
+
+Read in the transplant data and view the first few observations
+```{r}
+bmi_data <- read.csv("bmiz_after_renal_transplant.csv")
+
+head(bmi_data)
+```
+
+Summarize the variables
+```{r}
+#Quick way to get a data summary
+summary(bmi_data)
+
+#Approximating the stata output
+id <- bmi_data %>% 
+  dplyr::summarise(Count = n(),
+                   Mean=mean(id, na.rm = T),
+                   SD = sd(id, na.rm = T),
+                   Min = min(id, na.rm = T),
+                   Max = max(id, na.rm = T))
+
+month <- bmi_data %>% 
+  dplyr::summarise(Count = n(),
+                   Mean=mean(month, na.rm = T),
+                   SD = sd(month, na.rm = T),
+                   Min = min(month, na.rm = T),
+                   Max = max(month, na.rm = T))
+
+
+bmiz <- bmi_data %>% 
+  dplyr::summarise(Count = n(),
+                   Mean=mean(bmiz, na.rm = T),
+                   SD = sd(bmiz, na.rm = T),
+                   Min = min(bmiz, na.rm = T),
+                   Max = max(bmiz, na.rm = T))
+
+obese <- bmi_data %>% 
+  dplyr::summarise(Count = n(),
+                   Mean=mean(obese, na.rm = T),
+                   SD = sd(obese, na.rm = T),
+                   Min = min(obese, na.rm = T),
+                   Max = max(obese, na.rm = T))
+
+data <- rbind(id, month, bmiz, obese)
+Variable <- c("id", "month", "bmiz", "obese")
+
+cbind(Variable, data)
+
+#Any ideas on how to this with less code? Was trying to use tbl_summary from library(gtsummary) but getting lots of errors. Could write a function for the above, but I'm sure there's something better out there already
+```
+
+There are 631 measurements. How many subjects are there?
+```{r}
+length(unique(bmi_data$id))
+```
+
+Descriptive data from lecture 1
+```{r}
+bmi_data %>% 
+  dplyr::group_by(month) %>% 
+  dplyr::summarise(Count = n(),
+                   Mean=mean(bmiz, na.rm = T))
+```
+
+Display the first 10 rows of data
+```{r}
+bmi_data %>% arrange(id, month) %>% slice(1:10)
+```
+
+Regress bmiz on month and month-squared
+```{r}
+# Regress bmiz on month and month^2
+model_bmiz <- lm(bmiz ~ month + I(month^2), data = bmi_data)
+summary(model_bmiz)
+
+#Alternatively: summary(lm(bmiz ~ month + I(month^2), data = bmi_data))
+#Can also obtain just the coefficients: summary(model_bmiz)$coefficients
+```
+
+Obtain and plot the fitted values form the regression model
+(R does not have a built in margins command, but the ChatGPT-generated code below seems to work. 
+There is also a margins package (https://cran.r-project.org/web/packages/margins/vignettes/Introduction.html) that may replicate some of the functionality of the margins command)
+```{r}
+margins <- predict(model_bmiz, newdata = data.frame(month = seq(min(bmi_data$month), max(bmi_data$month), by = 1)), interval = "confidence")
+
+# Plotting margins
+ggplot(data = data.frame(month = seq(min(bmi_data$month), max(bmi_data$month), by = 1), margins), aes(x = month, y = fit)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) +
+  theme_minimal()
+
+#Save plot as PDF
+#ggsave("Lecture2_fittedvalues.png")
+#This will save to your working directory
+```
+Evaluate time lags between consecutive measurements on subjects
+```{r}
+# Evaluate time lags between consecutive measurements on subjects
+bmi_lag_data <- bmi_data %>%
+  arrange(id, month) %>%
+  group_by(id) %>%
+  mutate(lag = month - lag(month, order_by = month))
+
+#Estimate total lags (so we can calculate percents in the next step)
+total_lags <- sum(table(bmi_lag_data$lag))
+
+#Tabulate lag values
+bmi_lag_data %>%
+  dplyr::group_by(lag) %>% 
+  dplyr::summarise(Freq = n(),
+                   Percent = ((n()/total_lags)*100)
+                   )
+
+#Haven't yet figured out how to get the cumulative percent in the table
+```
+
+Information about the geeglm command
+```{r, eval=FALSE}
+help(geeglm)
+```
+
+Fit AR1 structure
+Note: the default standard error estimate for geeglm is the robust estimate (https://cran.r-project.org/web/packages/geepack/geepack.pdf, page 7)
+```{r}
+# GEE with AR(1) structure & robust SE
+gee_ar1 <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "ar1", data = bmi_data)
+summary(gee_ar1)
+
+#Get more information on the model
+gee_ar1$geese
+```
+
+Within subject correlation matrix - figuring this out with Claude - still not functional
+```{r}
+#Changing data to wide
+bmi_data_W <- reshape2::dcast(bmi_data, id ~ month, value.var = "bmiz") #getting wide format data
+colnames(bmi_data_W)[-1] <- paste0("bmi_", colnames(bmi_data_W)[-1]) #renaming
+
+#Function for obtaining estimated working correlation structure
+xtcorr_wide_fixed <- function(data, id_var, ...) {
+  # Ensure data is a data frame
+  data <- as.data.frame(data)
+  
+  # Convert variable names to character
+  id_var <- deparse(substitute(id_var))
+  time_vars <- as.character(match.call(expand.dots = FALSE)$...)
+  
+  # Print debugging information
+  cat("ID variable:", id_var, "\n")
+  cat("Time variables:", paste(time_vars, collapse = ", "), "\n")
+  cat("Variables in data:", paste(names(data), collapse = ", "), "\n")
+  
+  # Check if variables exist in the data
+  if (!id_var %in% names(data)) {
+    stop(paste("ID variable", id_var, "not found in data"))
+  }
+  
+  missing_vars <- time_vars[!time_vars %in% names(data)]
+  if (length(missing_vars) > 0) {
+    stop(paste("The following time variables were not found in the data:", 
+               paste(missing_vars, collapse = ", ")))
+  }
+  
+  # Function to center variables within each subject
+  center_within <- function(x) {
+    subject_mean <- mean(x, na.rm = TRUE)
+    return(x - subject_mean)
+  }
+  
+  # Center variables within each subject
+  centered_data <- do.call(rbind, by(data[c(id_var, time_vars)], data[[id_var]], function(subject) {
+    subject[time_vars] <- lapply(subject[time_vars], center_within)
+    return(subject)
+  }))
+  
+  # Calculate correlation matrix
+  cor_matrix <- cor(centered_data[time_vars], use = "pairwise.complete.obs")
+  
+  return(cor_matrix)
+}
+
+#xtcorr_wide_fixed(bmi_data_W, id, c(bmi_0, bmi_1, bmi_3))
+
+#Haven't gotten this to work yet, not sure that Claude/ChatGPT understand the question. If anyone has details on how this is estimated in stata, that would be helpful
+```
+
+Fit exchangeable structure
+Again, this defaults to robust SE estimation
+```{r}
+# GEE with exchangeable structure 
+gee_exc <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "exchangeable", data = bmi_data)
+summary(gee_exc)
+```
+
+GEE with tri-diagonal structure
+The geepack package does not have an option for a tri-diagonal correlation structure - is anyone else aware of other packages with this functionality?
+```{r}
+# GEE with tri-diagonal structure
+# Note: 'corstr = "fixed"' may be used in R, but requires a user-defined correlation matrix, which is complex to implement.
+#gee_tri <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "fixed", data = bmi_data)
+#summary(gee_tri)
+```
+
+GEE with unstructured covariance matrix (default = robust SE)
+```{r}
+gee_unstr <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "unstructured", data = bmi_data)
+summary(gee_unstr)
+
+#I think the long list of estimated parameters is telling us there was a failure to converge 
+```
+
+GEE with identity covariance matrix (default = robust SE)
+```{r}
+gee_id <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "independence", data = bmi_data)
+summary(gee_id)
+```
+
