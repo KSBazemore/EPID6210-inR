@@ -1,0 +1,104 @@
+---
+title: "Lecture1_2024_Overview: In R"
+author: "Katrina Bazemore, MPH"
+date: "2024-08-27"
+output: html_document
+---
+This code was written based on Stata code provided by Dr. Justine Shults, using reference code written by Dr. Erin Schnellinger, and using ChatGPT. The outputs approximate outputs of the Stata code.
+
+
+Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Change this line to your working directory - where the bmiz datafile is saved
+knitr::opts_knit$set(root.dir = "C:/Users/kbazemo/Box/EPID 6210/Data")
+```
+
+Loading necessary libraries
+```{r, eval=TRUE, message=FALSE, warning=FALSE}
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(corrr)
+
+#if libraries not already installed, use <install.packages("dplyr")> replacing dplyr with the package name
+```
+
+Read in the data and view the first few observations
+```{r}
+bmi_data <- read.csv("bmiz_after_renal_transplant.csv")
+
+head(bmi_data)
+```
+
+How many participants are in the study?
+```{r}
+length(unique(bmi_data$id))
+```
+How many measurements are there per participant?
+```{r}
+print(nrow(bmi_data)/length(unique(bmi_data$id)))
+```
+Can you generate visual displays of the data that can be used to describe the pattern of change in bmi z-score after transplant?
+```{r}
+ggplot(bmi_data) + 
+  geom_line(aes(x = month, y = bmiz, group = id, color = factor(id)), show.legend = F) +
+  xlab("Months after Renal Transplant") +
+  ylab("BMI Z-score") +
+  theme_bw()
+```
+
+Estimate the mean and standard deviation of bmi z-score over time. Does this suggest that the variance of bmi z-scores are approximately constant over time? If you plot the mean bmi z-score versus time overlaid on the graph of individual profile (spaghetti) plots does it suggest a similar pattern in bmi z-scores over time?
+```{r}
+bmi_data %>% 
+  dplyr::group_by(month) %>% 
+  dplyr::summarise(Count = n(),
+                   Mean=mean(bmiz, na.rm = T),
+                   SD = sd(bmiz, na.rm = T))
+```
+
+```{r}
+#Profile plots of BMI z-scores vs month after transplant with plot of mean BMI z-score vs month
+ggplot(bmi_data) + 
+  geom_line(aes(x = month, y = bmiz, group = id, color = factor(id)), show.legend = F) +
+  stat_summary(aes(x = month, y = bmiz), geom="line", fun=mean, color="red", linewidth = 1.2) +
+  xlab("Months after Renal Transplant") +
+  ylab("BMI Z-score") +
+  theme_bw()
+```
+
+Obtain the overall change in bmi z-score per subject. Is the mean of the overall changes meaningful? Why or why not?
+```{r}
+overall_change <- bmi_data %>% 
+  dplyr::group_by(id) %>%
+  dplyr::arrange(month, .by_group = T) %>%
+  dplyr::summarise(Change = last(bmiz - first(bmiz)))
+
+#Overall change per subject
+head(overall_change)
+
+#Summary stats on overall change per subject
+summary(overall_change$Change)
+```
+
+Estimate the correlation of bmi z-scores within subjects. Is there a discernable pattern in the correlations?
+
+Bonus: tutorial for reshape2 (https://seananderson.ca/2013/10/19/reshape/)
+```{r}
+#Reshape data into wide format
+bmi_data_W <- reshape2::dcast(bmi_data, id ~ month, value.var = "bmiz") 
+
+#Calculate pearson correlation of BMI Z-score over time
+bmi_data_W %>%
+  select(-c(id)) %>% #don't include the id column in the matrix
+  correlate(., y = NULL, use = 'pairwise.complete.obs', method = 'pearson') %>%
+  shave(upper = T)
+```
+
+
+
+
+
+
+
