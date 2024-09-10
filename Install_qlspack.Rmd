@@ -1,0 +1,37 @@
+---
+title: "Install_qlspack"
+author: "Katrina Bazemore"
+date: "2024-09-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Change this to your working directory
+knitr::opts_knit$set(root.dir = "C:/Users/kbazemo/Downloads")
+```
+
+Download qlspack (description here: https://core.ac.uk/download/pdf/61321077.pdf)
+```{r, message = F}
+url <- "https://cran.r-project.org/src/contrib/Archive/qlspack/qlspack_2.2.tar.gz"
+pkgFile <- "qlspack_2.2.tar.gz"
+download.file(url = url, destfile = pkgFile)
+```
+
+Install qlspack dependencies
+```{r, message = F}
+install.packages("geepack")
+install.packages("utils")
+```
+
+Install qlspack
+```{r, message = F}
+install.packages(pkgs=pkgFile, type="source", repos=NULL)
+library(qlspack)
+```
+
+Get a list of all functions included in qlspack
+```{r}
+lsf.str("package:qlspack")
+```
