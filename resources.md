@@ -14,6 +14,8 @@ Documentation for "qlspack" [https://core.ac.uk/download/pdf/61321077.pdf](url) 
 
 Tutorial for "margins" package [https://cran.r-project.org/web/packages/margins/vignettes/Introduction.html](url)
 
+Very basic tutorial for longitudinal/clustered data in R [https://tysonbarrett.com/Rstats/chapter-6-multilevel-modeling.html](url)
+
 
 
 
