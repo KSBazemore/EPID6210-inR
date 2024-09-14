@@ -20,74 +20,34 @@ Loading necessary libraries
 library(dplyr)
 library(ggplot2)
 library(geepack)
+library(gtsummary)
 
 #if libraries not already installed, use <install.packages("dplyr")> replacing dplyr with the package name
 ```
 
-
-Examples using the auto dataset - pending access to this data
+Specifying file containing functions we will use
 ```{r}
-#capture sysuse auto, clear
-#regress price mpg
-#glm price mpg, family(gaussian)
-
-# GLM for price ~ mpg using linear regression
-#model_reg <- lm(price ~ mpg, data = auto)
-#summary(model_reg)
-
-# GLM with gaussian family
-#model_glm <- glm(price ~ mpg, family = gaussian, data = auto)
-#summary(model_glm)
+source("../RCode/EPID6210-inR/functions.R")
+#source("functions.R")
 ```
+
 
 Read in the transplant data and view the first few observations
 ```{r}
-bmi_data <- read.csv("bmiz_after_renal_transplant.csv")
+bmi_data <- read.csv("../../Data/bmiz_after_renal_transplant.csv")
 
 head(bmi_data)
 ```
 
 Summarize the variables
 ```{r}
-#Quick way to get a data summary
-summary(bmi_data)
-
-#Approximating the stata output
-id <- bmi_data %>% 
-  dplyr::summarise(Count = n(),
-                   Mean=mean(id, na.rm = T),
-                   SD = sd(id, na.rm = T),
-                   Min = min(id, na.rm = T),
-                   Max = max(id, na.rm = T))
-
-month <- bmi_data %>% 
-  dplyr::summarise(Count = n(),
-                   Mean=mean(month, na.rm = T),
-                   SD = sd(month, na.rm = T),
-                   Min = min(month, na.rm = T),
-                   Max = max(month, na.rm = T))
-
-
-bmiz <- bmi_data %>% 
-  dplyr::summarise(Count = n(),
-                   Mean=mean(bmiz, na.rm = T),
-                   SD = sd(bmiz, na.rm = T),
-                   Min = min(bmiz, na.rm = T),
-                   Max = max(bmiz, na.rm = T))
-
-obese <- bmi_data %>% 
-  dplyr::summarise(Count = n(),
-                   Mean=mean(obese, na.rm = T),
-                   SD = sd(obese, na.rm = T),
-                   Min = min(obese, na.rm = T),
-                   Max = max(obese, na.rm = T))
-
-data <- rbind(id, month, bmiz, obese)
-Variable <- c("id", "month", "bmiz", "obese")
-
-cbind(Variable, data)
-
-#Any ideas on how to this with less code? Was trying to use tbl_summary from library(gtsummary) but getting lots of errors. Could write a function for the above, but I'm sure there's something better out there already
+bmi_data %>%
+  tbl_summary(
+    type = list(everything() ~ "continuous2"),
+    statistic = list(all_continuous() ~ c("{mean} ({sd})",
+                                          "{min}, {max}")),
+    digits = all_continuous() ~ 2,) %>%
+  add_n()
 ```
 
 There are 631 measurements. How many subjects are there?
@@ -160,8 +120,33 @@ Information about the geeglm command
 help(geeglm)
 ```
 
-Fit AR1 structure
-Note: the default standard error estimate for geeglm is the robust estimate (https://cran.r-project.org/web/packages/geepack/geepack.pdf, page 7)
+Fit AR1 structure - using the gee package
+```{r}
+gee_arm <- gee::gee(bmiz ~ month + I(month^2), id = id, corstr = "AR-M", data = bmi_data)
+
+#Full model summary
+#summary(gee_arm)
+
+#Model coefficients
+coeffs <- summary(gee_arm)$coefficients
+    #Naive S.E is model-based
+    #Robust S.E is sandwich-based
+
+#To get a table with coefficients and p-values use the function P_table (from functions.R)
+  #Specify the model and number of decimal places to round to
+P_table(gee_arm, 4)
+
+#Display the estimated correlation matrix - two options for the gee package
+  #Built in matrix
+  gee_arm$working.correlation
+  
+  #Matrix derived using function (from functions.R) - will have to use this function for models estimated with geepack
+  createCorrelationMatrixR(gee_arm, model.corstr = "ar1", fitting.package = "gee")
+```
+
+Fit AR1 structure - using the geepack package
+  Note: the default standard error estimate for geeglm (from geepack) is the robust estimate
+  (https://cran.r-project.org/web/packages/geepack/geepack.pdf, page 7)
 ```{r}
 # GEE with AR(1) structure & robust SE
 gee_ar1 <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "ar1", data = bmi_data)
@@ -169,90 +154,82 @@ summary(gee_ar1)
 
 #Get more information on the model
 gee_ar1$geese
+
+#Print just the alpha
+gee_ar1$geese$alpha
+
+#Display the estimated correlation matrix - not build in for geepack, have to use function from (functions.R)
+createCorrelationMatrixR(gee_ar1, model.corstr = "ar1", fitting.package = "geepack")
 ```
 
-Within subject correlation matrix - figuring this out with Claude - still not functional
+Fit exchangeable structure - using the gee package
 ```{r}
-#Changing data to wide
-bmi_data_W <- reshape2::dcast(bmi_data, id ~ month, value.var = "bmiz") #getting wide format data
-colnames(bmi_data_W)[-1] <- paste0("bmi_", colnames(bmi_data_W)[-1]) #renaming
+gee_exch <- gee::gee(bmiz ~ month + I(month^2), id = id, corstr = "exchangeable", data = bmi_data)
 
-#Function for obtaining estimated working correlation structure
-xtcorr_wide_fixed <- function(data, id_var, ...) {
-  # Ensure data is a data frame
-  data <- as.data.frame(data)
-  
-  # Convert variable names to character
-  id_var <- deparse(substitute(id_var))
-  time_vars <- as.character(match.call(expand.dots = FALSE)$...)
-  
-  # Print debugging information
-  cat("ID variable:", id_var, "\n")
-  cat("Time variables:", paste(time_vars, collapse = ", "), "\n")
-  cat("Variables in data:", paste(names(data), collapse = ", "), "\n")
-  
-  # Check if variables exist in the data
-  if (!id_var %in% names(data)) {
-    stop(paste("ID variable", id_var, "not found in data"))
-  }
-  
-  missing_vars <- time_vars[!time_vars %in% names(data)]
-  if (length(missing_vars) > 0) {
-    stop(paste("The following time variables were not found in the data:", 
-               paste(missing_vars, collapse = ", ")))
-  }
-  
-  # Function to center variables within each subject
-  center_within <- function(x) {
-    subject_mean <- mean(x, na.rm = TRUE)
-    return(x - subject_mean)
-  }
-  
-  # Center variables within each subject
-  centered_data <- do.call(rbind, by(data[c(id_var, time_vars)], data[[id_var]], function(subject) {
-    subject[time_vars] <- lapply(subject[time_vars], center_within)
-    return(subject)
-  }))
-  
-  # Calculate correlation matrix
-  cor_matrix <- cor(centered_data[time_vars], use = "pairwise.complete.obs")
-  
-  return(cor_matrix)
-}
+summary(gee_exch)
 
-#xtcorr_wide_fixed(bmi_data_W, id, c(bmi_0, bmi_1, bmi_3))
-
-#Haven't gotten this to work yet, not sure that Claude/ChatGPT understand the question. If anyone has details on how this is estimated in stata, that would be helpful
+P_table(gee_exch, 4)
 ```
 
-Fit exchangeable structure
-Again, this defaults to robust SE estimation
+Fit exchangeable structure - using the geepack package
+  Again, this defaults to robust SE estimation
 ```{r}
-# GEE with exchangeable structure 
+#GEE with exchangeable structure 
 gee_exc <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "exchangeable", data = bmi_data)
 summary(gee_exc)
+
+createCorrelationMatrixR(gee_exc, model.corstr = "exchangeable", fitting.package = "geepack")
+#Got slightly different estimated correlation structures between the two packages
 ```
 
-GEE with tri-diagonal structure
-The geepack package does not have an option for a tri-diagonal correlation structure - is anyone else aware of other packages with this functionality?
+GEE with tri-diagonal structure: neither package has an option for a tri-diagonal correlation structure
+
+
+Fit unstructured structure - using the GEE package
 ```{r}
-# GEE with tri-diagonal structure
-# Note: 'corstr = "fixed"' may be used in R, but requires a user-defined correlation matrix, which is complex to implement.
-#gee_tri <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "fixed", data = bmi_data)
-#summary(gee_tri)
+gee_unstruc <- gee::gee(bmiz ~ month + I(month^2), id = id, corstr = "unstructured", data = bmi_data)
+
+summary(gee_unstruc)
+
+P_table(gee_unstruc, 4)
+
+gee_unstruc$error
+#No errors reported
+
+gee_unstruc$iterations
+#I think this model was able to converge after 5 iterations
 ```
 
-GEE with unstructured covariance matrix (default = robust SE)
+
+Fit unstructured structure - using the geepack package (default = robust SE)
 ```{r}
 gee_unstr <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "unstructured", data = bmi_data)
 summary(gee_unstr)
 
 #I think the long list of estimated parameters is telling us there was a failure to converge 
+
+gee_unstr$geese$alpha
+
+#Even though the model did not converge, this function will still output a correlation matrix, but we have many values outside 0-1
+createCorrelationMatrixR(gee_unstr, model.corstr = "unstructured", fitting.package = "geepack")
 ```
 
-GEE with identity covariance matrix (default = robust SE)
+Fitting identity structure - using the GEE package
+```{r}
+gee_ident <- gee::gee(bmiz ~ month + I(month^2), id = id, corstr = "independence", data = bmi_data)
+
+summary(gee_ident)
+
+P_table(gee_ident, 4)
+```
+
+
+Fitting identity structure - using the geepack package (default = robust SE)
 ```{r}
 gee_id <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "independence", data = bmi_data)
 summary(gee_id)
+
+createCorrelationMatrixR(gee_id, model.corstr = "independent", fitting.package = "geepack")
 ```
+
 
