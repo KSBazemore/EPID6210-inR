@@ -1,4 +1,4 @@
-Stata to R cheat sheet [file:///C:/Users/kbazemo/Downloads/stata2r.pdf](url)
+Stata to R cheat sheet [https://raw.githubusercontent.com/rstudio/cheatsheets/master/stata2r.pdf](url)
 
 Tutorial for GEE using gee and geepack packages [https://sakai.unc.edu/access/content/group/2842013b-58f5-4453-aa8d-3e01bacbfc3d/public/Ecol562_Spring2012/docs/lectures/lecture23.htm](url)
 - contains function for QIC and CIC based on gee package output
