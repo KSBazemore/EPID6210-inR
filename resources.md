@@ -1,3 +1,6 @@
+Tutorial for GEE using gee and geepack packages [https://sakai.unc.edu/access/content/group/2842013b-58f5-4453-aa8d-3e01bacbfc3d/public/Ecol562_Spring2012/docs/lectures/lecture23.htm](url)
+- contains function for QIC and CIC based on gee package output
+
 Documentation for "geepack" [https://www.jstatsoft.org/article/view/v015i02](url) 
 - note: this package in R defaults to sandwich-based variance estimation and does not have an option for model-based, there is also no built-in way to view the working correlation matrix
 - further documentation: [https://cran.r-project.org/web/packages/geepack/geepack.pdf](url)
