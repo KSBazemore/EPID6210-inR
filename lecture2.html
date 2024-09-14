@@ -365,20 +365,13 @@ ChatGPT. The outputs approximate outputs of the Stata code.</p>
 <pre class="r"><code>library(dplyr)
 library(ggplot2)
 library(geepack)
+library(gtsummary)
 
 #if libraries not already installed, use &lt;install.packages(&quot;dplyr&quot;)&gt; replacing dplyr with the package name</code></pre>
-<p>Examples using the auto dataset - pending access to this data</p>
-<pre class="r"><code>#capture sysuse auto, clear
-#regress price mpg
-#glm price mpg, family(gaussian)
-
-# GLM for price ~ mpg using linear regression
-#model_reg &lt;- lm(price ~ mpg, data = auto)
-#summary(model_reg)
-
-# GLM with gaussian family
-#model_glm &lt;- glm(price ~ mpg, family = gaussian, data = auto)
-#summary(model_glm)</code></pre>
+<p>Specifying file containing functions we will use</p>
+<pre class="r"><code>source(&quot;../RCode/EPID6210-inR/functions.R&quot;)</code></pre>
+<pre><code>## Loading required package: Matrix</code></pre>
+<pre class="r"><code>#source(&quot;functions.R&quot;)</code></pre>
 <p>Read in the transplant data and view the first few observations</p>
 <pre class="r"><code>bmi_data &lt;- read.csv(&quot;bmiz_after_renal_transplant.csv&quot;)
 
@@ -391,55 +384,459 @@ head(bmi_data)</code></pre>
 ## 5  1    12 2.134451     1
 ## 6  1    24 1.937832     1</code></pre>
 <p>Summarize the variables</p>
-<pre class="r"><code>#Quick way to get a data summary
-summary(bmi_data)</code></pre>
-<pre><code>##        id             month            bmiz              obese       
-##  Min.   :  1.00   Min.   : 0.00   Min.   :-4.55382   Min.   :0.0000  
-##  1st Qu.: 25.00   1st Qu.: 1.00   1st Qu.: 0.02642   1st Qu.:0.0000  
-##  Median : 52.00   Median : 6.00   Median : 0.93123   Median :0.0000  
-##  Mean   : 54.35   Mean   :14.44   Mean   : 0.84403   Mean   :0.2964  
-##  3rd Qu.: 82.00   3rd Qu.:24.00   3rd Qu.: 1.79931   3rd Qu.:1.0000  
-##  Max.   :118.00   Max.   :96.00   Max.   : 3.30953   Max.   :1.0000</code></pre>
-<pre class="r"><code>#Approximating the stata output
-id &lt;- bmi_data %&gt;% 
-  dplyr::summarise(Count = n(),
-                   Mean=mean(id, na.rm = T),
-                   SD = sd(id, na.rm = T),
-                   Min = min(id, na.rm = T),
-                   Max = max(id, na.rm = T))
-
-month &lt;- bmi_data %&gt;% 
-  dplyr::summarise(Count = n(),
-                   Mean=mean(month, na.rm = T),
-                   SD = sd(month, na.rm = T),
-                   Min = min(month, na.rm = T),
-                   Max = max(month, na.rm = T))
-
-
-bmiz &lt;- bmi_data %&gt;% 
-  dplyr::summarise(Count = n(),
-                   Mean=mean(bmiz, na.rm = T),
-                   SD = sd(bmiz, na.rm = T),
-                   Min = min(bmiz, na.rm = T),
-                   Max = max(bmiz, na.rm = T))
-
-obese &lt;- bmi_data %&gt;% 
-  dplyr::summarise(Count = n(),
-                   Mean=mean(obese, na.rm = T),
-                   SD = sd(obese, na.rm = T),
-                   Min = min(obese, na.rm = T),
-                   Max = max(obese, na.rm = T))
-
-data &lt;- rbind(id, month, bmiz, obese)
-Variable &lt;- c(&quot;id&quot;, &quot;month&quot;, &quot;bmiz&quot;, &quot;obese&quot;)
-
-cbind(Variable, data)</code></pre>
-<pre><code>##   Variable Count      Mean         SD       Min        Max
-## 1       id   631 54.354992 33.5581580  1.000000 118.000000
-## 2    month   631 14.437401 19.2839796  0.000000  96.000000
-## 3     bmiz   631  0.844029  1.2451516 -4.553825   3.309535
-## 4    obese   631  0.296355  0.4570117  0.000000   1.000000</code></pre>
-<pre class="r"><code>#Any ideas on how to this with less code? Was trying to use tbl_summary from library(gtsummary) but getting lots of errors. Could write a function for the above, but I&#39;m sure there&#39;s something better out there already</code></pre>
+<pre class="r"><code>bmi_data %&gt;%
+  tbl_summary(
+    type = list(everything() ~ &quot;continuous2&quot;),
+    statistic = list(all_continuous() ~ c(&quot;{mean} ({sd})&quot;,
+                                          &quot;{min}, {max}&quot;)),
+    digits = all_continuous() ~ 2,) %&gt;%
+  add_n()</code></pre>
+<div id="uqjyprhjwy" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#uqjyprhjwy table {
+font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+}
+#uqjyprhjwy thead, #uqjyprhjwy tbody, #uqjyprhjwy tfoot, #uqjyprhjwy tr, #uqjyprhjwy td, #uqjyprhjwy th {
+border-style: none;
+}
+#uqjyprhjwy p {
+margin: 0;
+padding: 0;
+}
+#uqjyprhjwy .gt_table {
+display: table;
+border-collapse: collapse;
+line-height: normal;
+margin-left: auto;
+margin-right: auto;
+color: #333333;
+font-size: 16px;
+font-weight: normal;
+font-style: normal;
+background-color: #FFFFFF;
+width: auto;
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #A8A8A8;
+border-right-style: none;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #A8A8A8;
+border-left-style: none;
+border-left-width: 2px;
+border-left-color: #D3D3D3;
+}
+#uqjyprhjwy .gt_caption {
+padding-top: 4px;
+padding-bottom: 4px;
+}
+#uqjyprhjwy .gt_title {
+color: #333333;
+font-size: 125%;
+font-weight: initial;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 5px;
+padding-right: 5px;
+border-bottom-color: #FFFFFF;
+border-bottom-width: 0;
+}
+#uqjyprhjwy .gt_subtitle {
+color: #333333;
+font-size: 85%;
+font-weight: initial;
+padding-top: 3px;
+padding-bottom: 5px;
+padding-left: 5px;
+padding-right: 5px;
+border-top-color: #FFFFFF;
+border-top-width: 0;
+}
+#uqjyprhjwy .gt_heading {
+background-color: #FFFFFF;
+text-align: center;
+border-bottom-color: #FFFFFF;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+}
+#uqjyprhjwy .gt_bottom_border {
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+}
+#uqjyprhjwy .gt_col_headings {
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+}
+#uqjyprhjwy .gt_col_heading {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: normal;
+text-transform: inherit;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+vertical-align: bottom;
+padding-top: 5px;
+padding-bottom: 6px;
+padding-left: 5px;
+padding-right: 5px;
+overflow-x: hidden;
+}
+#uqjyprhjwy .gt_column_spanner_outer {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: normal;
+text-transform: inherit;
+padding-top: 0;
+padding-bottom: 0;
+padding-left: 4px;
+padding-right: 4px;
+}
+#uqjyprhjwy .gt_column_spanner_outer:first-child {
+padding-left: 0;
+}
+#uqjyprhjwy .gt_column_spanner_outer:last-child {
+padding-right: 0;
+}
+#uqjyprhjwy .gt_column_spanner {
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+vertical-align: bottom;
+padding-top: 5px;
+padding-bottom: 5px;
+overflow-x: hidden;
+display: inline-block;
+width: 100%;
+}
+#uqjyprhjwy .gt_spanner_row {
+border-bottom-style: hidden;
+}
+#uqjyprhjwy .gt_group_heading {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+text-transform: inherit;
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+vertical-align: middle;
+text-align: left;
+}
+#uqjyprhjwy .gt_empty_group_heading {
+padding: 0.5px;
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+vertical-align: middle;
+}
+#uqjyprhjwy .gt_from_md > :first-child {
+margin-top: 0;
+}
+#uqjyprhjwy .gt_from_md > :last-child {
+margin-bottom: 0;
+}
+#uqjyprhjwy .gt_row {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+margin: 10px;
+border-top-style: solid;
+border-top-width: 1px;
+border-top-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 1px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 1px;
+border-right-color: #D3D3D3;
+vertical-align: middle;
+overflow-x: hidden;
+}
+#uqjyprhjwy .gt_stub {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+text-transform: inherit;
+border-right-style: solid;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+padding-left: 5px;
+padding-right: 5px;
+}
+#uqjyprhjwy .gt_stub_row_group {
+color: #333333;
+background-color: #FFFFFF;
+font-size: 100%;
+font-weight: initial;
+text-transform: inherit;
+border-right-style: solid;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+padding-left: 5px;
+padding-right: 5px;
+vertical-align: top;
+}
+#uqjyprhjwy .gt_row_group_first td {
+border-top-width: 2px;
+}
+#uqjyprhjwy .gt_row_group_first th {
+border-top-width: 2px;
+}
+#uqjyprhjwy .gt_summary_row {
+color: #333333;
+background-color: #FFFFFF;
+text-transform: inherit;
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#uqjyprhjwy .gt_first_summary_row {
+border-top-style: solid;
+border-top-color: #D3D3D3;
+}
+#uqjyprhjwy .gt_first_summary_row.thick {
+border-top-width: 2px;
+}
+#uqjyprhjwy .gt_last_summary_row {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+}
+#uqjyprhjwy .gt_grand_summary_row {
+color: #333333;
+background-color: #FFFFFF;
+text-transform: inherit;
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#uqjyprhjwy .gt_first_grand_summary_row {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+border-top-style: double;
+border-top-width: 6px;
+border-top-color: #D3D3D3;
+}
+#uqjyprhjwy .gt_last_grand_summary_row_top {
+padding-top: 8px;
+padding-bottom: 8px;
+padding-left: 5px;
+padding-right: 5px;
+border-bottom-style: double;
+border-bottom-width: 6px;
+border-bottom-color: #D3D3D3;
+}
+#uqjyprhjwy .gt_striped {
+background-color: rgba(128, 128, 128, 0.05);
+}
+#uqjyprhjwy .gt_table_body {
+border-top-style: solid;
+border-top-width: 2px;
+border-top-color: #D3D3D3;
+border-bottom-style: solid;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+}
+#uqjyprhjwy .gt_footnotes {
+color: #333333;
+background-color: #FFFFFF;
+border-bottom-style: none;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 2px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+}
+#uqjyprhjwy .gt_footnote {
+margin: 0px;
+font-size: 90%;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#uqjyprhjwy .gt_sourcenotes {
+color: #333333;
+background-color: #FFFFFF;
+border-bottom-style: none;
+border-bottom-width: 2px;
+border-bottom-color: #D3D3D3;
+border-left-style: none;
+border-left-width: 2px;
+border-left-color: #D3D3D3;
+border-right-style: none;
+border-right-width: 2px;
+border-right-color: #D3D3D3;
+}
+#uqjyprhjwy .gt_sourcenote {
+font-size: 90%;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 5px;
+padding-right: 5px;
+}
+#uqjyprhjwy .gt_left {
+text-align: left;
+}
+#uqjyprhjwy .gt_center {
+text-align: center;
+}
+#uqjyprhjwy .gt_right {
+text-align: right;
+font-variant-numeric: tabular-nums;
+}
+#uqjyprhjwy .gt_font_normal {
+font-weight: normal;
+}
+#uqjyprhjwy .gt_font_bold {
+font-weight: bold;
+}
+#uqjyprhjwy .gt_font_italic {
+font-style: italic;
+}
+#uqjyprhjwy .gt_super {
+font-size: 65%;
+}
+#uqjyprhjwy .gt_footnote_marks {
+font-size: 75%;
+vertical-align: 0.4em;
+position: initial;
+}
+#uqjyprhjwy .gt_asterisk {
+font-size: 100%;
+vertical-align: 0;
+}
+#uqjyprhjwy .gt_indent_1 {
+text-indent: 5px;
+}
+#uqjyprhjwy .gt_indent_2 {
+text-indent: 10px;
+}
+#uqjyprhjwy .gt_indent_3 {
+text-indent: 15px;
+}
+#uqjyprhjwy .gt_indent_4 {
+text-indent: 20px;
+}
+#uqjyprhjwy .gt_indent_5 {
+text-indent: 25px;
+}
+#uqjyprhjwy .katex-display {
+display: inline-flex !important;
+margin-bottom: 0.75em !important;
+}
+#uqjyprhjwy div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+height: 0px !important;
+}
+</style>
+<table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <thead>
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="&lt;span class=&#39;gt_from_md&#39;&gt;&lt;strong&gt;Characteristic&lt;/strong&gt;&lt;/span&gt;"><span class="gt_from_md"><strong>Characteristic</strong></span></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="&lt;span class=&#39;gt_from_md&#39;&gt;&lt;strong&gt;N&lt;/strong&gt;&lt;/span&gt;"><span class="gt_from_md"><strong>N</strong></span></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="&lt;span class=&#39;gt_from_md&#39;&gt;&lt;strong&gt;N = 631&lt;/strong&gt;&lt;/span&gt;"><span class="gt_from_md"><strong>N = 631</strong></span></th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers="label" class="gt_row gt_left">id</td>
+<td headers="n" class="gt_row gt_center">631</td>
+<td headers="stat_0" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Mean (SD)</td>
+<td headers="n" class="gt_row gt_center"><br /></td>
+<td headers="stat_0" class="gt_row gt_center">54.35 (33.56)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Min, Max</td>
+<td headers="n" class="gt_row gt_center"><br /></td>
+<td headers="stat_0" class="gt_row gt_center">1.00, 118.00</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">month</td>
+<td headers="n" class="gt_row gt_center">631</td>
+<td headers="stat_0" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Mean (SD)</td>
+<td headers="n" class="gt_row gt_center"><br /></td>
+<td headers="stat_0" class="gt_row gt_center">14.44 (19.28)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Min, Max</td>
+<td headers="n" class="gt_row gt_center"><br /></td>
+<td headers="stat_0" class="gt_row gt_center">0.00, 96.00</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">bmiz</td>
+<td headers="n" class="gt_row gt_center">631</td>
+<td headers="stat_0" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Mean (SD)</td>
+<td headers="n" class="gt_row gt_center"><br /></td>
+<td headers="stat_0" class="gt_row gt_center">0.84 (1.25)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Min, Max</td>
+<td headers="n" class="gt_row gt_center"><br /></td>
+<td headers="stat_0" class="gt_row gt_center">-4.55, 3.31</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">obese</td>
+<td headers="n" class="gt_row gt_center">631</td>
+<td headers="stat_0" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Mean (SD)</td>
+<td headers="n" class="gt_row gt_center"><br /></td>
+<td headers="stat_0" class="gt_row gt_center">0.30 (0.46)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Min, Max</td>
+<td headers="n" class="gt_row gt_center"><br /></td>
+<td headers="stat_0" class="gt_row gt_center">0.00, 1.00</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
 <p>There are 631 measurements. How many subjects are there?</p>
 <pre class="r"><code>length(unique(bmi_data$id))</code></pre>
 <pre><code>## [1] 100</code></pre>
@@ -550,8 +947,91 @@ bmi_lag_data %&gt;%
 <pre class="r"><code>#Haven&#39;t yet figured out how to get the cumulative percent in the table</code></pre>
 <p>Information about the geeglm command</p>
 <pre class="r"><code>help(geeglm)</code></pre>
-<p>Fit AR1 structure Note: the default standard error estimate for
-geeglm is the robust estimate (<a href="https://cran.r-project.org/web/packages/geepack/geepack.pdf" class="uri">https://cran.r-project.org/web/packages/geepack/geepack.pdf</a>,
+<p>Fit AR1 structure - using the gee package</p>
+<pre class="r"><code>gee_arm &lt;- gee::gee(bmiz ~ month + I(month^2), id = id, corstr = &quot;AR-M&quot;, data = bmi_data)</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>##   (Intercept)         month    I(month^2) 
+##  0.6802840051  0.0185544733 -0.0001796267</code></pre>
+<pre class="r"><code>#Full model summary
+#summary(gee_arm)
+
+#Model coefficients
+coeffs &lt;- summary(gee_arm)$coefficients
+    #Naive S.E is model-based
+    #Robust S.E is sandwich-based
+
+#To get a table with coefficients and p-values use the function P_table (from functions.R)
+  #Specify the model and number of decimal places to round to
+P_table(gee_arm, 4)</code></pre>
+<pre><code>##             Estimate Naive S.E. Naive z Robust S.E. Robust z model_based_p
+## (Intercept)   0.5315     0.1175  4.5241      0.1161   4.5779        0.0000
+## month         0.0106     0.0062  1.7106      0.0043   2.4510        0.0872
+## I(month^2)   -0.0001     0.0001 -1.4397      0.0001  -2.2864        0.1500
+##             sandwich_based_p
+## (Intercept)           0.0000
+## month                 0.0142
+## I(month^2)            0.0222</code></pre>
+<pre class="r"><code>#Display the estimated correlation matrix - two options for the gee package
+  #Built in matrix
+  gee_arm$working.correlation</code></pre>
+<pre><code>##            [,1]      [,2]      [,3]      [,4]      [,5]      [,6]      [,7]
+##  [1,] 1.0000000 0.8420595 0.7090643 0.5970743 0.5027722 0.4233641 0.3564978
+##  [2,] 0.8420595 1.0000000 0.8420595 0.7090643 0.5970743 0.5027722 0.4233641
+##  [3,] 0.7090643 0.8420595 1.0000000 0.8420595 0.7090643 0.5970743 0.5027722
+##  [4,] 0.5970743 0.7090643 0.8420595 1.0000000 0.8420595 0.7090643 0.5970743
+##  [5,] 0.5027722 0.5970743 0.7090643 0.8420595 1.0000000 0.8420595 0.7090643
+##  [6,] 0.4233641 0.5027722 0.5970743 0.7090643 0.8420595 1.0000000 0.8420595
+##  [7,] 0.3564978 0.4233641 0.5027722 0.5970743 0.7090643 0.8420595 1.0000000
+##  [8,] 0.3001924 0.3564978 0.4233641 0.5027722 0.5970743 0.7090643 0.8420595
+##  [9,] 0.2527798 0.3001924 0.3564978 0.4233641 0.5027722 0.5970743 0.7090643
+## [10,] 0.2128557 0.2527798 0.3001924 0.3564978 0.4233641 0.5027722 0.5970743
+## [11,] 0.1792372 0.2128557 0.2527798 0.3001924 0.3564978 0.4233641 0.5027722
+## [12,] 0.1509284 0.1792372 0.2128557 0.2527798 0.3001924 0.3564978 0.4233641
+##            [,8]      [,9]     [,10]     [,11]     [,12]
+##  [1,] 0.3001924 0.2527798 0.2128557 0.1792372 0.1509284
+##  [2,] 0.3564978 0.3001924 0.2527798 0.2128557 0.1792372
+##  [3,] 0.4233641 0.3564978 0.3001924 0.2527798 0.2128557
+##  [4,] 0.5027722 0.4233641 0.3564978 0.3001924 0.2527798
+##  [5,] 0.5970743 0.5027722 0.4233641 0.3564978 0.3001924
+##  [6,] 0.7090643 0.5970743 0.5027722 0.4233641 0.3564978
+##  [7,] 0.8420595 0.7090643 0.5970743 0.5027722 0.4233641
+##  [8,] 1.0000000 0.8420595 0.7090643 0.5970743 0.5027722
+##  [9,] 0.8420595 1.0000000 0.8420595 0.7090643 0.5970743
+## [10,] 0.7090643 0.8420595 1.0000000 0.8420595 0.7090643
+## [11,] 0.5970743 0.7090643 0.8420595 1.0000000 0.8420595
+## [12,] 0.5027722 0.5970743 0.7090643 0.8420595 1.0000000</code></pre>
+<pre class="r"><code>  #Matrix derived using function (from functions.R) - will have to use this function for models estimated with geepack
+  createCorrelationMatrixR(gee_arm, model.corstr = &quot;ar1&quot;, fitting.package = &quot;gee&quot;)</code></pre>
+<pre><code>##            t1        t2        t3        t4        t5        t6        t7
+## t1  1.0000000 0.8420595 0.7090643 0.5970743 0.5027722 0.4233641 0.3564978
+## t2  0.8420595 1.0000000 0.8420595 0.7090643 0.5970743 0.5027722 0.4233641
+## t3  0.7090643 0.8420595 1.0000000 0.8420595 0.7090643 0.5970743 0.5027722
+## t4  0.5970743 0.7090643 0.8420595 1.0000000 0.8420595 0.7090643 0.5970743
+## t5  0.5027722 0.5970743 0.7090643 0.8420595 1.0000000 0.8420595 0.7090643
+## t6  0.4233641 0.5027722 0.5970743 0.7090643 0.8420595 1.0000000 0.8420595
+## t7  0.3564978 0.4233641 0.5027722 0.5970743 0.7090643 0.8420595 1.0000000
+## t8  0.3001924 0.3564978 0.4233641 0.5027722 0.5970743 0.7090643 0.8420595
+## t9  0.2527798 0.3001924 0.3564978 0.4233641 0.5027722 0.5970743 0.7090643
+## t10 0.2128557 0.2527798 0.3001924 0.3564978 0.4233641 0.5027722 0.5970743
+## t11 0.1792372 0.2128557 0.2527798 0.3001924 0.3564978 0.4233641 0.5027722
+## t12 0.1509284 0.1792372 0.2128557 0.2527798 0.3001924 0.3564978 0.4233641
+##            t8        t9       t10       t11       t12
+## t1  0.3001924 0.2527798 0.2128557 0.1792372 0.1509284
+## t2  0.3564978 0.3001924 0.2527798 0.2128557 0.1792372
+## t3  0.4233641 0.3564978 0.3001924 0.2527798 0.2128557
+## t4  0.5027722 0.4233641 0.3564978 0.3001924 0.2527798
+## t5  0.5970743 0.5027722 0.4233641 0.3564978 0.3001924
+## t6  0.7090643 0.5970743 0.5027722 0.4233641 0.3564978
+## t7  0.8420595 0.7090643 0.5970743 0.5027722 0.4233641
+## t8  1.0000000 0.8420595 0.7090643 0.5970743 0.5027722
+## t9  0.8420595 1.0000000 0.8420595 0.7090643 0.5970743
+## t10 0.7090643 0.8420595 1.0000000 0.8420595 0.7090643
+## t11 0.5970743 0.7090643 0.8420595 1.0000000 0.8420595
+## t12 0.5027722 0.5970743 0.7090643 0.8420595 1.0000000</code></pre>
+<p>Fit AR1 structure - using the geepack package Note: the default
+standard error estimate for geeglm (from geepack) is the robust estimate
+(<a href="https://cran.r-project.org/web/packages/geepack/geepack.pdf" class="uri">https://cran.r-project.org/web/packages/geepack/geepack.pdf</a>,
 page 7)</p>
 <pre class="r"><code># GEE with AR(1) structure &amp; robust SE
 gee_ar1 &lt;- geeglm(bmiz ~ month + I(month^2), id = id, corstr = &quot;ar1&quot;, data = bmi_data)
@@ -612,61 +1092,111 @@ gee_ar1$geese</code></pre>
 ## 
 ## Returned Error Value:  0 
 ## Number of clusters:   100   Maximum cluster size: 12</code></pre>
-<p>Within subject correlation matrix - figuring this out with Claude -
-still not functional</p>
-<pre class="r"><code>#Changing data to wide
-bmi_data_W &lt;- reshape2::dcast(bmi_data, id ~ month, value.var = &quot;bmiz&quot;) #getting wide format data
-colnames(bmi_data_W)[-1] &lt;- paste0(&quot;bmi_&quot;, colnames(bmi_data_W)[-1]) #renaming
-
-#Function for obtaining estimated working correlation structure
-xtcorr_wide_fixed &lt;- function(data, id_var, ...) {
-  # Ensure data is a data frame
-  data &lt;- as.data.frame(data)
-  
-  # Convert variable names to character
-  id_var &lt;- deparse(substitute(id_var))
-  time_vars &lt;- as.character(match.call(expand.dots = FALSE)$...)
-  
-  # Print debugging information
-  cat(&quot;ID variable:&quot;, id_var, &quot;\n&quot;)
-  cat(&quot;Time variables:&quot;, paste(time_vars, collapse = &quot;, &quot;), &quot;\n&quot;)
-  cat(&quot;Variables in data:&quot;, paste(names(data), collapse = &quot;, &quot;), &quot;\n&quot;)
-  
-  # Check if variables exist in the data
-  if (!id_var %in% names(data)) {
-    stop(paste(&quot;ID variable&quot;, id_var, &quot;not found in data&quot;))
-  }
-  
-  missing_vars &lt;- time_vars[!time_vars %in% names(data)]
-  if (length(missing_vars) &gt; 0) {
-    stop(paste(&quot;The following time variables were not found in the data:&quot;, 
-               paste(missing_vars, collapse = &quot;, &quot;)))
-  }
-  
-  # Function to center variables within each subject
-  center_within &lt;- function(x) {
-    subject_mean &lt;- mean(x, na.rm = TRUE)
-    return(x - subject_mean)
-  }
-  
-  # Center variables within each subject
-  centered_data &lt;- do.call(rbind, by(data[c(id_var, time_vars)], data[[id_var]], function(subject) {
-    subject[time_vars] &lt;- lapply(subject[time_vars], center_within)
-    return(subject)
-  }))
-  
-  # Calculate correlation matrix
-  cor_matrix &lt;- cor(centered_data[time_vars], use = &quot;pairwise.complete.obs&quot;)
-  
-  return(cor_matrix)
-}
-
-#xtcorr_wide_fixed(bmi_data_W, id, c(bmi_0, bmi_1, bmi_3))
-
-#Haven&#39;t gotten this to work yet, not sure that Claude/ChatGPT understand the question. If anyone has details on how this is estimated in stata, that would be helpful</code></pre>
-<p>Fit exchangeable structure Again, this defaults to robust SE
-estimation</p>
-<pre class="r"><code># GEE with exchangeable structure 
+<pre class="r"><code>#Print just the alpha
+gee_ar1$geese$alpha</code></pre>
+<pre><code>##  alpha 
+## 0.9012</code></pre>
+<pre class="r"><code>#Display the estimated correlation matrix - not build in for geepack, have to use function from (functions.R)
+createCorrelationMatrixR(gee_ar1, model.corstr = &quot;ar1&quot;, fitting.package = &quot;geepack&quot;)</code></pre>
+<pre><code>##         t1     t2     t3     t4     t5     t6     t7     t8     t9    t10
+## t1  1.0000 0.9012 0.8121 0.7318 0.6595 0.5943 0.5356 0.4827 0.4350 0.3920
+## t2  0.9012 1.0000 0.9012 0.8121 0.7318 0.6595 0.5943 0.5356 0.4827 0.4350
+## t3  0.8121 0.9012 1.0000 0.9012 0.8121 0.7318 0.6595 0.5943 0.5356 0.4827
+## t4  0.7318 0.8121 0.9012 1.0000 0.9012 0.8121 0.7318 0.6595 0.5943 0.5356
+## t5  0.6595 0.7318 0.8121 0.9012 1.0000 0.9012 0.8121 0.7318 0.6595 0.5943
+## t6  0.5943 0.6595 0.7318 0.8121 0.9012 1.0000 0.9012 0.8121 0.7318 0.6595
+## t7  0.5356 0.5943 0.6595 0.7318 0.8121 0.9012 1.0000 0.9012 0.8121 0.7318
+## t8  0.4827 0.5356 0.5943 0.6595 0.7318 0.8121 0.9012 1.0000 0.9012 0.8121
+## t9  0.4350 0.4827 0.5356 0.5943 0.6595 0.7318 0.8121 0.9012 1.0000 0.9012
+## t10 0.3920 0.4350 0.4827 0.5356 0.5943 0.6595 0.7318 0.8121 0.9012 1.0000
+## t11 0.3532 0.3920 0.4350 0.4827 0.5356 0.5943 0.6595 0.7318 0.8121 0.9012
+## t12 0.3183 0.3532 0.3920 0.4350 0.4827 0.5356 0.5943 0.6595 0.7318 0.8121
+##        t11    t12
+## t1  0.3532 0.3183
+## t2  0.3920 0.3532
+## t3  0.4350 0.3920
+## t4  0.4827 0.4350
+## t5  0.5356 0.4827
+## t6  0.5943 0.5356
+## t7  0.6595 0.5943
+## t8  0.7318 0.6595
+## t9  0.8121 0.7318
+## t10 0.9012 0.8121
+## t11 1.0000 0.9012
+## t12 0.9012 1.0000</code></pre>
+<p>Fit exchangeable structure - using the gee package</p>
+<pre class="r"><code>gee_exch &lt;- gee::gee(bmiz ~ month + I(month^2), id = id, corstr = &quot;exchangeable&quot;, data = bmi_data)</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## (Intercept)       month  I(month^2) 
+##   0.6802840   0.0185545  -0.0001796</code></pre>
+<pre class="r"><code>summary(gee_exch)</code></pre>
+<pre><code>## 
+##  GEE:  GENERALIZED LINEAR MODELS FOR DEPENDENT DATA
+##  gee S-function, version 4.13 modified 98/01/27 (1998) 
+## 
+## Model:
+##  Link:                      Identity 
+##  Variance to Mean Relation: Gaussian 
+##  Correlation Structure:     Exchangeable 
+## 
+## Call:
+## gee::gee(formula = bmiz ~ month + I(month^2), id = id, data = bmi_data, 
+##     corstr = &quot;exchangeable&quot;)
+## 
+## Summary of Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -5.2598 -0.7595  0.1409  1.0005  2.4571 
+## 
+## 
+## Coefficients:
+##               Estimate Naive S.E. Naive z Robust S.E. Robust z
+## (Intercept)  0.7059408  0.1116541   6.323   1.103e-01    6.398
+## month        0.0163598  0.0038226   4.280   4.797e-03    3.411
+## I(month^2)  -0.0002278  0.0000556  -4.097   7.061e-05   -3.226
+## 
+## Estimated Scale Parameter:  1.541
+## Number of Iterations:  2
+## 
+## Working Correlation
+##         [,1]   [,2]   [,3]   [,4]   [,5]   [,6]   [,7]   [,8]   [,9]  [,10]
+##  [1,] 1.0000 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143
+##  [2,] 0.7143 1.0000 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143
+##  [3,] 0.7143 0.7143 1.0000 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143
+##  [4,] 0.7143 0.7143 0.7143 1.0000 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143
+##  [5,] 0.7143 0.7143 0.7143 0.7143 1.0000 0.7143 0.7143 0.7143 0.7143 0.7143
+##  [6,] 0.7143 0.7143 0.7143 0.7143 0.7143 1.0000 0.7143 0.7143 0.7143 0.7143
+##  [7,] 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 1.0000 0.7143 0.7143 0.7143
+##  [8,] 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 1.0000 0.7143 0.7143
+##  [9,] 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 1.0000 0.7143
+## [10,] 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 1.0000
+## [11,] 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143
+## [12,] 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143 0.7143
+##        [,11]  [,12]
+##  [1,] 0.7143 0.7143
+##  [2,] 0.7143 0.7143
+##  [3,] 0.7143 0.7143
+##  [4,] 0.7143 0.7143
+##  [5,] 0.7143 0.7143
+##  [6,] 0.7143 0.7143
+##  [7,] 0.7143 0.7143
+##  [8,] 0.7143 0.7143
+##  [9,] 0.7143 0.7143
+## [10,] 0.7143 0.7143
+## [11,] 1.0000 0.7143
+## [12,] 0.7143 1.0000</code></pre>
+<pre class="r"><code>P_table(gee_exch, 4)</code></pre>
+<pre><code>##             Estimate Naive S.E. Naive z Robust S.E. Robust z model_based_p
+## (Intercept)   0.7059     0.1117   6.323      0.1103    6.398             0
+## month         0.0164     0.0038   4.280      0.0048    3.411             0
+## I(month^2)   -0.0002     0.0001  -4.098      0.0001   -3.226             0
+##             sandwich_based_p
+## (Intercept)           0.0000
+## month                 0.0006
+## I(month^2)            0.0013</code></pre>
+<p>Fit exchangeable structure - using the geepack package Again, this
+defaults to robust SE estimation</p>
+<pre class="r"><code>#GEE with exchangeable structure 
 gee_exc &lt;- geeglm(bmiz ~ month + I(month^2), id = id, corstr = &quot;exchangeable&quot;, data = bmi_data)
 summary(gee_exc)</code></pre>
 <pre><code>## 
@@ -693,14 +1223,102 @@ summary(gee_exc)</code></pre>
 ##       Estimate Std.err
 ## alpha    0.717  0.0491
 ## Number of clusters:   100  Maximum cluster size: 12</code></pre>
-<p>GEE with tri-diagonal structure The geepack package does not have an
-option for a tri-diagonal correlation structure - is anyone else aware
-of other packages with this functionality?</p>
-<pre class="r"><code># GEE with tri-diagonal structure
-# Note: &#39;corstr = &quot;fixed&quot;&#39; may be used in R, but requires a user-defined correlation matrix, which is complex to implement.
-#gee_tri &lt;- geeglm(bmiz ~ month + I(month^2), id = id, corstr = &quot;fixed&quot;, data = bmi_data)
-#summary(gee_tri)</code></pre>
-<p>GEE with unstructured covariance matrix (default = robust SE)</p>
+<pre class="r"><code>createCorrelationMatrixR(gee_exc, model.corstr = &quot;exchangeable&quot;, fitting.package = &quot;geepack&quot;)</code></pre>
+<pre><code>##        t1    t2    t3    t4    t5    t6    t7    t8    t9   t10   t11   t12
+## t1  1.000 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717
+## t2  0.717 1.000 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717
+## t3  0.717 0.717 1.000 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717
+## t4  0.717 0.717 0.717 1.000 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717
+## t5  0.717 0.717 0.717 0.717 1.000 0.717 0.717 0.717 0.717 0.717 0.717 0.717
+## t6  0.717 0.717 0.717 0.717 0.717 1.000 0.717 0.717 0.717 0.717 0.717 0.717
+## t7  0.717 0.717 0.717 0.717 0.717 0.717 1.000 0.717 0.717 0.717 0.717 0.717
+## t8  0.717 0.717 0.717 0.717 0.717 0.717 0.717 1.000 0.717 0.717 0.717 0.717
+## t9  0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 1.000 0.717 0.717 0.717
+## t10 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 1.000 0.717 0.717
+## t11 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 1.000 0.717
+## t12 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 0.717 1.000</code></pre>
+<pre class="r"><code>#Got slightly different estimated correlation structures between the two packages</code></pre>
+<p>GEE with tri-diagonal structure: neither package has an option for a
+tri-diagonal correlation structure</p>
+<p>Fit unstructured structure - using the GEE package</p>
+<pre class="r"><code>gee_unstruc &lt;- gee::gee(bmiz ~ month + I(month^2), id = id, corstr = &quot;unstructured&quot;, data = bmi_data)</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## (Intercept)       month  I(month^2) 
+##     0.68028     0.01855    -0.00018</code></pre>
+<pre class="r"><code>summary(gee_unstruc)</code></pre>
+<pre><code>## 
+##  GEE:  GENERALIZED LINEAR MODELS FOR DEPENDENT DATA
+##  gee S-function, version 4.13 modified 98/01/27 (1998) 
+## 
+## Model:
+##  Link:                      Identity 
+##  Variance to Mean Relation: Gaussian 
+##  Correlation Structure:     Unstructured 
+## 
+## Call:
+## gee::gee(formula = bmiz ~ month + I(month^2), id = id, data = bmi_data, 
+##     corstr = &quot;unstructured&quot;)
+## 
+## Summary of Residuals:
+##    Min     1Q Median     3Q    Max 
+## -5.069 -0.755  0.166  1.032  2.448 
+## 
+## 
+## Coefficients:
+##              Estimate Naive S.E. Naive z Robust S.E. Robust z
+## (Intercept)  0.515594   1.12e-01    4.62    1.15e-01     4.49
+## month        0.032973   5.64e-03    5.84    5.08e-03     6.49
+## I(month^2)  -0.000349   8.55e-05   -4.08    7.37e-05    -4.74
+## 
+## Estimated Scale Parameter:  1.54
+## Number of Iterations:  5
+## 
+## Working Correlation
+##            [,1]     [,2]     [,3]     [,4]      [,5]      [,6]      [,7]
+##  [1,]  1.000000 0.763239 5.94e-01 0.572904  0.654707  0.553363  0.490730
+##  [2,]  0.763239 1.000000 7.97e-01 0.686979  0.606357  0.463439  0.366672
+##  [3,]  0.594192 0.797130 1.00e+00 0.821551  0.664951  0.416927  0.322516
+##  [4,]  0.572904 0.686979 8.22e-01 1.000000  0.684905  0.414888  0.293976
+##  [5,]  0.654707 0.606357 6.65e-01 0.684905  1.000000  0.590423  0.441735
+##  [6,]  0.553363 0.463439 4.17e-01 0.414888  0.590423  1.000000  0.553998
+##  [7,]  0.490730 0.366672 3.23e-01 0.293976  0.441735  0.553998  1.000000
+##  [8,]  0.130607 0.056931 8.10e-02 0.061211  0.150890  0.182109  0.187454
+##  [9,] -0.026385 0.004801 3.15e-02 0.008502  0.042771  0.066297  0.062506
+## [10,] -0.016747 0.016545 4.20e-02 0.022240  0.033647  0.046563  0.042976
+## [11,]  0.001495 0.002301 1.69e-03 0.001421  0.000362 -0.000796 -0.000378
+## [12,] -0.000113 0.000259 2.65e-05 0.000136 -0.000202 -0.000322 -0.000143
+##            [,8]      [,9]     [,10]     [,11]     [,12]
+##  [1,]  0.130607 -2.64e-02 -1.67e-02  1.50e-03 -1.13e-04
+##  [2,]  0.056931  4.80e-03  1.65e-02  2.30e-03  2.59e-04
+##  [3,]  0.080962  3.15e-02  4.20e-02  1.69e-03  2.65e-05
+##  [4,]  0.061211  8.50e-03  2.22e-02  1.42e-03  1.36e-04
+##  [5,]  0.150890  4.28e-02  3.36e-02  3.62e-04 -2.02e-04
+##  [6,]  0.182109  6.63e-02  4.66e-02 -7.96e-04 -3.22e-04
+##  [7,]  0.187454  6.25e-02  4.30e-02 -3.78e-04 -1.43e-04
+##  [8,]  1.000000  6.75e-02  4.80e-02 -2.61e-04 -1.63e-04
+##  [9,]  0.067459  1.00e+00  6.03e-02 -1.08e-03 -7.04e-05
+## [10,]  0.048015  6.03e-02  1.00e+00 -4.66e-04  6.42e-05
+## [11,] -0.000261 -1.08e-03 -4.66e-04  1.00e+00  4.27e-05
+## [12,] -0.000163 -7.04e-05  6.42e-05  4.27e-05  1.00e+00</code></pre>
+<pre class="r"><code>P_table(gee_unstruc, 4)</code></pre>
+<pre><code>##             Estimate Naive S.E. Naive z Robust S.E. Robust z model_based_p
+## (Intercept)   0.5156     0.1115    4.62      0.1147     4.49             0
+## month         0.0330     0.0056    5.84      0.0051     6.49             0
+## I(month^2)   -0.0003     0.0001   -4.08      0.0001    -4.74             0
+##             sandwich_based_p
+## (Intercept)                0
+## month                      0
+## I(month^2)                 0</code></pre>
+<pre class="r"><code>gee_unstruc$error</code></pre>
+<pre><code>## [1] 0</code></pre>
+<pre class="r"><code>#No errors reported
+
+gee_unstruc$iterations</code></pre>
+<pre><code>## [1] 5</code></pre>
+<pre class="r"><code>#I think this model was able to converge after 5 iterations</code></pre>
+<p>Fit unstructured structure - using the geepack package (default =
+robust SE)</p>
 <pre class="r"><code>gee_unstr &lt;- geeglm(bmiz ~ month + I(month^2), id = id, corstr = &quot;unstructured&quot;, data = bmi_data)
 summary(gee_unstr)</code></pre>
 <pre><code>## 
@@ -792,8 +1410,118 @@ summary(gee_unstr)</code></pre>
 ## alpha.10:12 -0.14489  1.0857
 ## alpha.11:12  1.39484  1.3250
 ## Number of clusters:   100  Maximum cluster size: 12</code></pre>
-<pre class="r"><code>#I think the long list of estimated parameters is telling us there was a failure to converge </code></pre>
-<p>GEE with identity covariance matrix (default = robust SE)</p>
+<pre class="r"><code>#I think the long list of estimated parameters is telling us there was a failure to converge 
+
+gee_unstr$geese$alpha</code></pre>
+<pre><code>##   alpha.1:2   alpha.1:3   alpha.1:4   alpha.1:5   alpha.1:6   alpha.1:7 
+##     1.40254     0.89983     0.57928     0.40547     0.07460     0.09805 
+##   alpha.1:8   alpha.1:9  alpha.1:10  alpha.1:11  alpha.1:12   alpha.2:3 
+##    -0.09305    -0.18421     0.19243     0.27222     2.11553     0.72408 
+##   alpha.2:4   alpha.2:5   alpha.2:6   alpha.2:7   alpha.2:8   alpha.2:9 
+##     0.50263     0.40776     0.25635     0.28680     0.03159    -0.11347 
+##  alpha.2:10  alpha.2:11  alpha.2:12   alpha.3:4   alpha.3:5   alpha.3:6 
+##     0.00427    -0.10264     0.80727     0.50221     0.47265     0.38543 
+##   alpha.3:7   alpha.3:8   alpha.3:9  alpha.3:10  alpha.3:11  alpha.3:12 
+##     0.44998     0.25509     0.07629     0.13835    -0.06451     1.24846 
+##   alpha.4:5   alpha.4:6   alpha.4:7   alpha.4:8   alpha.4:9  alpha.4:10 
+##     0.51746     0.47721     0.51450     0.25227    -0.03887    -0.09967 
+##  alpha.4:11  alpha.4:12   alpha.5:6   alpha.5:7   alpha.5:8   alpha.5:9 
+##    -0.12252     0.50550     0.66280     0.68852     0.40945     0.09845 
+##  alpha.5:10  alpha.5:11  alpha.5:12   alpha.6:7   alpha.6:8   alpha.6:9 
+##    -0.01430    -0.16813     0.85510     0.89300     0.49280     0.22309 
+##  alpha.6:10  alpha.6:11  alpha.6:12   alpha.7:8   alpha.7:9  alpha.7:10 
+##     0.04264    -0.26552     0.19178     0.61401     0.39470     0.12827 
+##  alpha.7:11  alpha.7:12   alpha.8:9  alpha.8:10  alpha.8:11  alpha.8:12 
+##    -0.78357    -0.90205     0.52252     0.32400    -0.88558    -0.87531 
+##  alpha.9:10  alpha.9:11  alpha.9:12 alpha.10:11 alpha.10:12 alpha.11:12 
+##     0.88910     0.43769    -0.69494     1.06082    -0.14489     1.39484</code></pre>
+<pre class="r"><code>#Even though the model did not converge, this function will still output a correlation matrix, but we have many values outside 0-1
+createCorrelationMatrixR(gee_unstr, model.corstr = &quot;unstructured&quot;, fitting.package = &quot;geepack&quot;)</code></pre>
+<pre><code>##          t1       t2      t3      t4      t5      t6     t7      t8      t9
+## t1   1.0000  1.40254  0.8998  0.5793  0.4055  0.0746  0.098 -0.0930 -0.1842
+## t2   1.4025  1.00000  0.7241  0.5026  0.4078  0.2564  0.287  0.0316 -0.1135
+## t3   0.8998  0.72408  1.0000  0.5022  0.4727  0.3854  0.450  0.2551  0.0763
+## t4   0.5793  0.50263  0.5022  1.0000  0.5175  0.4772  0.514  0.2523 -0.0389
+## t5   0.4055  0.40776  0.4727  0.5175  1.0000  0.6628  0.689  0.4094  0.0985
+## t6   0.0746  0.25635  0.3854  0.4772  0.6628  1.0000  0.893  0.4928  0.2231
+## t7   0.0980  0.28680  0.4500  0.5145  0.6885  0.8930  1.000  0.6140  0.3947
+## t8  -0.0930  0.03159  0.2551  0.2523  0.4094  0.4928  0.614  1.0000  0.5225
+## t9  -0.1842 -0.11347  0.0763 -0.0389  0.0985  0.2231  0.395  0.5225  1.0000
+## t10  0.1924  0.00427  0.1384 -0.0997 -0.0143  0.0426  0.128  0.3240  0.8891
+## t11  0.2722 -0.10264 -0.0645 -0.1225 -0.1681 -0.2655 -0.784 -0.8856  0.4377
+## t12  2.1155  0.80727  1.2485  0.5055  0.8551  0.1918 -0.902 -0.8753 -0.6949
+##          t10     t11    t12
+## t1   0.19243  0.2722  2.116
+## t2   0.00427 -0.1026  0.807
+## t3   0.13835 -0.0645  1.248
+## t4  -0.09967 -0.1225  0.505
+## t5  -0.01430 -0.1681  0.855
+## t6   0.04264 -0.2655  0.192
+## t7   0.12827 -0.7836 -0.902
+## t8   0.32400 -0.8856 -0.875
+## t9   0.88910  0.4377 -0.695
+## t10  1.00000  1.0608 -0.145
+## t11  1.06082  1.0000  1.395
+## t12 -0.14489  1.3948  1.000</code></pre>
+<p>Fitting identity structure - using the GEE package</p>
+<pre class="r"><code>gee_ident &lt;- gee::gee(bmiz ~ month + I(month^2), id = id, corstr = &quot;independence&quot;, data = bmi_data)</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## (Intercept)       month  I(month^2) 
+##     0.68028     0.01855    -0.00018</code></pre>
+<pre class="r"><code>summary(gee_ident)</code></pre>
+<pre><code>## 
+##  GEE:  GENERALIZED LINEAR MODELS FOR DEPENDENT DATA
+##  gee S-function, version 4.13 modified 98/01/27 (1998) 
+## 
+## Model:
+##  Link:                      Identity 
+##  Variance to Mean Relation: Gaussian 
+##  Correlation Structure:     Independent 
+## 
+## Call:
+## gee::gee(formula = bmiz ~ month + I(month^2), id = id, data = bmi_data, 
+##     corstr = &quot;independence&quot;)
+## 
+## Summary of Residuals:
+##    Min     1Q Median     3Q    Max 
+## -5.234 -0.811  0.105  0.983  2.316 
+## 
+## 
+## Coefficients:
+##             Estimate Naive S.E. Naive z Robust S.E. Robust z
+## (Intercept)  0.68028   7.05e-02    9.65    1.12e-01     6.06
+## month        0.01855   6.81e-03    2.72    6.20e-03     2.99
+## I(month^2)  -0.00018   9.79e-05   -1.83    9.17e-05    -1.96
+## 
+## Estimated Scale Parameter:  1.53
+## Number of Iterations:  1
+## 
+## Working Correlation
+##       [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11] [,12]
+##  [1,]    1    0    0    0    0    0    0    0    0     0     0     0
+##  [2,]    0    1    0    0    0    0    0    0    0     0     0     0
+##  [3,]    0    0    1    0    0    0    0    0    0     0     0     0
+##  [4,]    0    0    0    1    0    0    0    0    0     0     0     0
+##  [5,]    0    0    0    0    1    0    0    0    0     0     0     0
+##  [6,]    0    0    0    0    0    1    0    0    0     0     0     0
+##  [7,]    0    0    0    0    0    0    1    0    0     0     0     0
+##  [8,]    0    0    0    0    0    0    0    1    0     0     0     0
+##  [9,]    0    0    0    0    0    0    0    0    1     0     0     0
+## [10,]    0    0    0    0    0    0    0    0    0     1     0     0
+## [11,]    0    0    0    0    0    0    0    0    0     0     1     0
+## [12,]    0    0    0    0    0    0    0    0    0     0     0     1</code></pre>
+<pre class="r"><code>P_table(gee_ident, 4)</code></pre>
+<pre><code>##             Estimate Naive S.E. Naive z Robust S.E. Robust z model_based_p
+## (Intercept)   0.6803     0.0705    9.65      0.1123     6.06        0.0000
+## month         0.0186     0.0068    2.72      0.0062     2.99        0.0065
+## I(month^2)   -0.0002     0.0001   -1.83      0.0001    -1.96        0.0666
+##             sandwich_based_p
+## (Intercept)           0.0000
+## month                 0.0028
+## I(month^2)            0.0502</code></pre>
+<p>Fitting identity structure - using the geepack package (default =
+robust SE)</p>
 <pre class="r"><code>gee_id &lt;- geeglm(bmiz ~ month + I(month^2), id = id, corstr = &quot;independence&quot;, data = bmi_data)
 summary(gee_id)</code></pre>
 <pre><code>## 
@@ -815,6 +1543,20 @@ summary(gee_id)</code></pre>
 ##             Estimate Std.err
 ## (Intercept)     1.52   0.176
 ## Number of clusters:   100  Maximum cluster size: 12</code></pre>
+<pre class="r"><code>createCorrelationMatrixR(gee_id, model.corstr = &quot;independent&quot;, fitting.package = &quot;geepack&quot;)</code></pre>
+<pre><code>##     t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12
+## t1   1  0  0  0  0  0  0  0  0   0   0   0
+## t2   0  1  0  0  0  0  0  0  0   0   0   0
+## t3   0  0  1  0  0  0  0  0  0   0   0   0
+## t4   0  0  0  1  0  0  0  0  0   0   0   0
+## t5   0  0  0  0  1  0  0  0  0   0   0   0
+## t6   0  0  0  0  0  1  0  0  0   0   0   0
+## t7   0  0  0  0  0  0  1  0  0   0   0   0
+## t8   0  0  0  0  0  0  0  1  0   0   0   0
+## t9   0  0  0  0  0  0  0  0  1   0   0   0
+## t10  0  0  0  0  0  0  0  0  0   1   0   0
+## t11  0  0  0  0  0  0  0  0  0   0   1   0
+## t12  0  0  0  0  0  0  0  0  0   0   0   1</code></pre>
 
 
 
