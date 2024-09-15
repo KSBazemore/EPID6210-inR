@@ -91,6 +91,40 @@ createCorrelationMatrixR <- function(fitted.model = NULL,
   return(working_corrmat)
 }
 
+#Function for viewing patterns of observations in a frequency table (written by KB)
+view_patterns <- function(data, id.column, time.column, up.through) {
+  #Filter data to only include observations up through the specified month
+  data_filter <- data %>% filter({{time.column}} <= up.through)  
+  
+  #Making a new dataframe to store patterns for each ID
+  pattern_set <- data.frame(
+    id <- rep(NA, max(data_filter[[deparse(substitute(id.column))]])),
+    pattern <- rep(NA, max(data_filter[[deparse(substitute(id.column))]]))
+  )
+  
+  #Getting a list of ids
+  ids <- unique(data_filter[[deparse(substitute(id.column))]])
+  
+  #Loop over the ids to get the observation pattern for each
+  for (i in ids) {
+    pattern_set$id[i] <- i
+    id_set <- dplyr::filter(data_filter, {{id.column}} == i)
+    pattern_set$pattern[i] <- paste(id_set[[deparse(substitute(time.column))]], collapse = ", ")
+  }
+  
+  #Cleaning up the pattern variable
+  pattern_set$pattern <- gsub(" ", "", pattern_set$pattern)
+  
+  #Selecting only the relevent columns from pattern_set
+  pattern_set <- pattern_set %>% dplyr::select(id, pattern) 
+  
+  #Tabulating the frequencies of each pattern
+  pattern_counts <- pattern_set %>% group_by(pattern) %>% count() %>% mutate(percent = (n/length(ids))*100)
+  
+  #Returning the pattern counts table
+  return(pattern_counts)
+}
+
 
 #Function for calculating QIC and CIC on GEE package models from: https://sakai.unc.edu/access/content/group/2842013b-58f5-4453-aa8d-3e01bacbfc3d/public/Ecol562_Spring2012/docs/lectures/lecture23.htm
 
