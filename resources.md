@@ -9,7 +9,7 @@ Documentation for "geepack" [https://www.jstatsoft.org/article/view/v015i02]
 
 Details on QIC in "geepack" [https://rdrr.io/cran/geepack/man/QIC.html]
 
-Potential alternate method for QIC [https://www.rdocumentation.org/packages/MuMIn/versions/1.48.4/topics/QIC](url) in "MuMIn" package [https://cran.r-project.org/web/packages/MuMIn/MuMIn.pdf]
+Potential alternate method for QIC [https://www.rdocumentation.org/packages/MuMIn/versions/1.48.4/topics/QIC] in "MuMIn" package [https://cran.r-project.org/web/packages/MuMIn/MuMIn.pdf]
 
 Tutorial for GEE with package "gee" [https://library.virginia.edu/data/articles/getting-started-with-generalized-estimating-equations] 
 
