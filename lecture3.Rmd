@@ -1,0 +1,150 @@
+---
+title: "lecture 3"
+author: "Katrina Bazemore"
+date: "2024-09-05"
+output: html_document
+---
+
+This code was written based on Stata code provided by Dr. Justine Shults and using ChatGPT. The outputs approximate outputs of the Stata code.
+
+Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Change this line to your working directory - where the bmiz datafile is saved
+knitr::opts_knit$set(root.dir = "C:/Users/kbazemo/Box/EPID 6210/Data")
+```
+
+Loading necessary libraries
+```{r, eval=TRUE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(geepack)
+library(qlspack) #to install qlspack, see Install_qlspack.Rmd
+library(mice)
+
+#if libraries not already installed, use <install.packages("dplyr")> replacing dplyr with the package name
+```
+
+Specifying file containing functions we will use
+```{r}
+source("../RCode/EPID6210-inR/functions.R")
+```
+
+List of functions available in qlspack
+```{r}
+lsf.str("package:qlspack")
+```
+Read in the data
+```{r}
+bmi_data <- read.csv("bmiz_after_renal_transplant.csv")
+```
+
+Explore missingness patterns
+```{r}
+#Get summary stats on number of observations for each subject
+summary(bmi_data %>% count(id))[,2]
+  #min number of observations per subject is 3, max is 12, average is 6.31
+```
+
+```{r}
+#Reshape to wide
+bmi_data_W <- reshape2::dcast(bmi_data, id ~ month, value.var = "bmiz") 
+
+#Use the mice package to plot missingness patterns
+md.pattern(bmi_data_W, plot = T)
+```
+
+Fit QLS with AR(1) Structure: using sandwich errors as qlspack only provides 4 types of errors (sandwich robust, approximate jacknife, 1-step jacknife, and fully iterated jacknife)
+```{r}
+qls_ar1 <- qls(bmiz ~ month + I(month^2), data = bmi_data, id = bmi_data$id, family = "gaussian", correlation = "ar1", std.err = "san.se")
+  #for the id argument, have to specify dataset$id, not just id as is typical for other regressions in R
+  #for this model I specified sandwich standard errors because there is no model-based option
+summary(qls_ar1)
+
+#The function for the estimated correlation matrix still works on qls models - we need to specify the fitting.package as "geepack" because qlspack is built to use functions from geepack
+createCorrelationMatrixR(qls_ar1, model.corstr = "ar1", fitting.package = "geepack")
+```
+
+Drop some data so that some subjects have only 1 measurement
+```{r}
+#Remove obs with month>0 and id>40
+bmi_edit <- bmi_data %>% arrange(id, month) %>% filter(!(month>0 & id>40))
+
+summary(bmi_edit %>% count(id))[,2]
+#Now the min number of observations per person is 1
+```
+
+Fit QLS GEE again with AR(1) structure (using sandwich SE as no model-based available)
+```{r}
+qls_ar1_drop <- qls(bmiz ~ month + I(month^2), data = bmi_edit, id = bmi_edit$id, family = "gaussian", correlation = "ar1", std.err = "san.se")
+
+summary(qls_ar1_drop)
+#We can see the the number of groups is still 100, and the max obs per group is still 12
+
+nrow(qls_ar1_drop$data) #number of observations used in modeling
+
+summary(qls_ar1_drop$data %>% count(id))[,2] #Can get summary stats on obs per id directly from the data used in modeling
+```
+
+Fit GEE with AR(1) structure on edited data (using sandwich SE as no model-based available)
+```{r}
+gee_ar1 <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "ar1", data = bmi_edit)
+summary(gee_ar1)
+#number of clusters is still 100, looks like this does not drop subjects with only one observation as in stata
+```
+
+Compare model output
+```{r}
+#QLS on edited data with sandwich SE
+print(summary(qls_ar1_drop)$coefficients)
+qls_ar1_drop$geese$alpha
+#GEE (geepack) on edited data with sandwich SE
+print(summary(gee_ar1)$coefficients)
+gee_ar1$geese$alpha
+
+#Results are pretty similar, alphas vary a bit
+```
+
+Fit GEE with AR(1) structure on edited data using the GEE package (to see if it performs differently from the geepack package)
+```{r}
+#gee_arm <- gee::gee(bmiz ~ month + I(month^2), id = id, corstr = "AR-M", data = bmi_edit)
+gee_error <- ("Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27
+running glm to get initial regression estimate
+(Intercept)       month  I(month^2) 
+   0.551498    0.026798   -0.000249 
+Error in gee::gee(bmiz ~ month + I(month^2), id = id, corstr = AR-M,  : 
+  cgee: M-dependence, M=1, but clustsize=1
+fatal error for this model")
+print(gee_error)
+#the GEE package can't handle subjects with only one observation
+```
+
+Removing subjects with one observations in the data manually to check the results using the GEE package
+```{r}
+#Get a list of IDs with only one observation in our edited data
+bmi_edit_counts <- bmi_edit %>% count(id) %>% filter(n==1)
+
+#Creating a new dataframe excluding IDs with only only observation in bmi_edit
+bmi_edit2 <- bmi_edit %>% filter(!id %in% bmi_edit_counts$id)
+
+#How many observations are we left with
+nrow(bmi_edit2)
+
+#Try fitting GEE using GEE package again after removing those with only one observation
+gee_arm <- gee::gee(bmiz ~ month + I(month^2), id = id, corstr = "AR-M", data = bmi_edit2)
+
+P_table(gee_arm, 5) #from the functions.R file
+```
+
+Bonus, equivalent to xtset in R
+```{r}
+library(plm)
+plm::is.pbalanced(bmi_data$id, bmi_data$month)
+```
+
+
+
+
+
+
+

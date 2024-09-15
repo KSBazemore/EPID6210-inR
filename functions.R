@@ -2,12 +2,14 @@
 #Author: Katrina Bazemore, MPH
 #Have linked to sources of functions where relevant
 
-
+#Loading libraries
 library(gee)
 library(geepack)
 library(geeM)
 
 #Function to get p-values in coefficients table from gee package models (written by KB)
+#Example P_table(gee_ar1, 4)
+
 P_table <- function(fitted.model, round.to) {
   coeffs <- round(summary(fitted.model)$coefficients, round.to)
   model_based_p <- round((2*pnorm(abs(coef(summary(fitted.model))[,3]), lower.tail = F)), round.to)

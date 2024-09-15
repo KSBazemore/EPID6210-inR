@@ -34,7 +34,7 @@ source("../RCode/EPID6210-inR/functions.R")
 
 Read in the transplant data and view the first few observations
 ```{r}
-bmi_data <- read.csv("../../Data/bmiz_after_renal_transplant.csv")
+bmi_data <- read.csv("bmiz_after_renal_transplant.csv")
 
 head(bmi_data)
 ```
@@ -161,6 +161,20 @@ gee_ar1$geese$alpha
 #Display the estimated correlation matrix - not build in for geepack, have to use function from (functions.R)
 createCorrelationMatrixR(gee_ar1, model.corstr = "ar1", fitting.package = "geepack")
 ```
+Waves argument in geeglm
+```{r}
+bmi_data <- bmi_data %>% arrange(id, month) %>% group_by(id) %>% mutate(obs_wave = row_number()) %>% ungroup
+#waves is just used to specify the order that measures occurred in. If no waves argument is specified then geeglm assumes the observations occurred in the order at which they appear in the data
+
+# GEE with AR(1) structure & robust SE
+gee_ar1_waves <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "ar1", data = bmi_data, waves = obs_wave)
+summary(gee_ar1_waves)
+
+gee_ar1_waves$geese$alpha
+#the model parameters are equivalent across gee_ar1 and gee_ar1_waves because the data was already ordered by order of observation occurrence within subject
+#by default, geeglm used all available data - we don't have to use something like "force" in stata to avoid dropping out observations or subjects with missing data
+```
+
 
 Fit exchangeable structure - using the gee package
 ```{r}
