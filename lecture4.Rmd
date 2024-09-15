@@ -1,0 +1,87 @@
+---
+title: "lecture4"
+author: "Katrina Bazemore"
+date: "2024-09-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Change this line to your working directory - where the bmiz datafile is saved
+knitr::opts_knit$set(root.dir = "C:/Users/kbazemo/Box/EPID 6210/Data")
+```
+
+Loading necessary libraries
+```{r, eval=TRUE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(geepack)
+library(qlspack)
+
+#if libraries not already installed, use <install.packages("dplyr")> replacing dplyr with the package name
+```
+
+Specifying file containing functions we will use
+```{r}
+source("../RCode/EPID6210-inR/functions.R")
+```
+
+
+Read in the transplant data and view the first few observations
+```{r}
+bmi_data <- read.csv("bmiz_after_renal_transplant.csv")
+```
+
+Defining missingness patterns and view
+```{r}
+view_patterns(bmi_data, id, month, 12) #function I wrote for this purpose, from functions.R
+```
+
+Fit the most plausible structure (Markov)
+```{r}
+#Filtering the data to only include observations through month 12
+bmi_filter <- bmi_data %>% filter(month <=12) %>% arrange(id, month)
+
+#Running QLS with markov structure
+qls_mark <- qls(bmiz ~ month + I(month^2), data = bmi_filter, id = bmi_filter$id, family = "gaussian", correlation = "markov", std.err = "san.se")
+
+#Model summary
+summary(qls_mark)
+```
+
+What are the two most common patterns of timings of measurements?
+```{r}
+view_patterns(bmi_data, id, month, 12) 
+#the two most common patterns are 0,1,3,6,12 and 0,1,3,12
+```
+
+Print the correlation matrices for the two most common patterns of observations
+```{r}
+#Updated the createCorrelationMatrixR function so it can get estimated correlation from the markov structure (in functions.R)
+full_matrix <- createCorrMatrixR(qls_mark, model.corstr = "markov", fitting.package = "qlspack", time_var = "month", use_time_labels = TRUE)
+
+#Wrote function to subset output of createCorrMatrixR (in functions.R)
+  #For most common pattern
+  subsetCorrMatrix(full_matrix, c("0", "1", "3", "6", "12"))
+  
+  #For second most common pattern
+  subsetCorrMatrix(full_matrix, c("0", "1", "3", "12"))
+```
+
+
+Estimate the correlation between bmiz at month 0 and month 11
+```{r}
+alpha <- qls_mark$geese$alpha
+timegap <- 11-0
+estCorr <- alpha^timegap
+print(estCorr)
+```
+
+
+
+
+
+
+
+
+
