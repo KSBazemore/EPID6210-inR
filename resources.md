@@ -16,10 +16,13 @@ Tutorial for GEE with package "gee" [https://library.virginia.edu/data/articles/
 Tutorial on "reshape2" [https://seananderson.ca/2013/10/19/reshape/](url) for reformatting data to wide/long
 
 Documentation for "qlspack" [https://core.ac.uk/download/pdf/61321077.pdf](url) - to install this archived package, see Install_qlspack.Rmd
+ paper on qlspack (note, the sample code provided in this paper is imperfect) [https://biostats.bepress.com/cgi/viewcontent.cgi?article=1037&context=upennbiostat](url)
 
 Tutorial for "margins" package [https://cran.r-project.org/web/packages/margins/vignettes/Introduction.html](url)
 
 Very basic tutorial for longitudinal/clustered data in R [https://tysonbarrett.com/Rstats/chapter-6-multilevel-modeling.html](url)
+
+Book on multilevel modeling in R available free online [https://cehs-research.github.io/eBook_multilevel/]
 
 
 
