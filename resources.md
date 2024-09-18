@@ -24,6 +24,8 @@ Very basic tutorial for longitudinal/clustered data in R [here](https://tysonbar
 
 Book on multilevel modeling in R available free online [here](https://cehs-research.github.io/eBook_multilevel/)
 
+Matrices in R [here](https://edrub.in/ARE212/section02.html#matrices)
+
 
 
 
