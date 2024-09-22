@@ -1,0 +1,114 @@
+---
+title: "lecture5"
+author: "Katrina Bazemore"
+date: "2024-09-22"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Change this line to your working directory - where the bmiz datafile is saved
+knitr::opts_knit$set(root.dir = "C:/Users/kbazemo/Box/EPID 6210/Data")
+```
+
+Loading necessary libraries
+```{r, eval=TRUE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(geepack)
+library(qlspack)
+library(plm)
+#if libraries not already installed, use <install.packages("dplyr")> replacing dplyr with the package name
+```
+
+Specifying file containing functions we will use
+```{r}
+source("../RCode/EPID6210-inR/functions.R")
+```
+
+Read in the data
+```{r}
+bmi_data <- read.csv("bmiz_after_renal_transplant.csv")
+```
+
+Filter data
+```{r}
+#Filter out observations after month 1, and then those with only one observation
+bmi_data_edit <- bmi_data %>%
+  filter(month == 0 | month == 1) %>% 
+  arrange(id, month) %>%
+  group_by(id) %>%
+  filter(n() >1) %>%
+  ungroup()
+```
+
+Is the data balanced?
+```{r}
+#Check if the data is balanced given the id and time variables
+plm::is.pbalanced(bmi_data_edit$id, bmi_data_edit$month)
+```
+
+Describe the data
+```{r}
+#How many participants are present?
+length(unique(bmi_data_edit$id))
+
+#What are the patterns of observation, is there missingness?
+view_patterns(bmi_data_edit, id, month, 1)
+```
+Convert month to a factor so it plays nice with geepack
+```{r}
+bmi_data_edit$month <- factor(bmi_data_edit$month, levels=c("0", "1"), labels = c("baseline", "month1"))
+```
+
+
+geepack has a QIC function. It does not work on QLS objects
+```{r}
+gee_ar1 <- QIC(geeglm(bmiz ~ month, id = id, corstr = "ar1", data = bmi_data_edit))
+gee_exch <- QIC(geeglm(bmiz ~ month, id = id, corstr = "exchangeable", data = bmi_data_edit))
+#gee_unstruc <- QIC(geeglm(bmiz ~ month, id = id, corstr = "unstructured", data = bmi_data_edit))
+  #unstructured won't run due to contrast errors
+
+rbind(gee_ar1, gee_exch)
+```
+
+Filter data to months 0, 1, 48
+```{r}
+#Filter out observations after month 1, and then those with only one observation
+bmi_data_edit2 <- bmi_data %>%
+  filter(month == 0 | month == 1 | month == 48) %>% 
+  arrange(id, month) 
+
+#Check if the data is balanced given the id and time variables
+plm::is.pbalanced(bmi_data_edit2$id, bmi_data_edit2$month)
+
+#How many participants are present?
+length(unique(bmi_data_edit2$id))
+
+#What are the patterns of observation, is there missingness?
+view_patterns(bmi_data_edit2, id, month, 48)
+```
+
+Examine model fit when keeping months 0, 1, 48
+```{r}
+gee_ar1_2 <- QIC(geeglm(bmiz ~ month, id = id, corstr = "ar1", data = bmi_data_edit2))
+gee_exch_2 <- QIC(geeglm(bmiz ~ month, id = id, corstr = "exchangeable", data = bmi_data_edit2))
+gee_unstruc_2 <- QIC(geeglm(bmiz ~ month, id = id, corstr = "unstructured", data = bmi_data_edit2))
+
+rbind(gee_ar1_2, gee_exch_2, gee_unstruc_2)
+```
+Results for QLS Markov, GEE unstructured, GEE exchangeable
+```{r}
+gee_ar1_2 <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "ar1", data = bmi_data_edit2)
+gee_exch_2 <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "exchangeable", data = bmi_data_edit2)
+gee_unstr_2 <- geeglm(bmiz ~ month + I(month^2), id = id, corstr = "unstructured", data = bmi_data_edit2)
+qls_mark <- qls(bmiz ~ month + I(month^2), data = bmi_data_edit2, id = bmi_data_edit2$id, family = "gaussian", correlation = "markov", std.err = "san.se")
+
+summary(gee_ar1_2)
+summary(gee_exch_2)
+summary(gee_unstr_2)
+summary(qls_mark)
+```
+
+
+
+
