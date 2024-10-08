@@ -290,9 +290,9 @@ reg_results <- function(model_out) {
   vars$combined <- sprintf("%.3f (%.4f)", vars$beta, vars$P)
   coeffs <- vars$combined
   alpha <- if(length(model_out$geese$alpha) > 1) {
-    "Failed to Converge" 
+    paste0("Min: ", round(min(model_out$geese$alpha), 3), ", Max: ", round(max(model_out$geese$alpha), 3)) 
   } else {
-    model_out$geese$alpha
+    round(model_out$geese$alpha, 3)
   }
   N <- nrow(model_out$model)
   results <- c(coeffs, N, alpha)
