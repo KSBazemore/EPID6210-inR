@@ -281,3 +281,197 @@ QIC.binom.geeglm <- function(model.geeglm, model.independence)
   names(output) <- c('QIC','CIC')
   output
 }
+
+#Function for saving selected model results in a vector - written with help from Claude
+reg_results <- function(model_out) {
+  vars <- summary(model_out)$coefficients
+  names(vars) <- c("beta", "SE", "Wald", "P")
+  vars$variable <- row.names(vars)
+  vars$combined <- sprintf("%.3f (%.4f)", vars$beta, vars$P)
+  coeffs <- vars$combined
+  alpha <- if(length(model_out$geese$alpha) > 1) {
+    "Failed to Converge" 
+  } else {
+    model_out$geese$alpha
+  }
+  N <- nrow(model_out$model)
+  results <- c(coeffs, N, alpha)
+  names(results) <- NULL
+  return(results)
+}
+
+#Function for getting the variable names in the model coefficient table - KB
+params <- function(model_out) {
+  vars <- summary(model_out)$coefficients
+  return(row.names(vars))
+}
+
+
+#Function for getting fit statistics - based on Dr. Shults check_fit_GEE_Sep_2024.ado file, converted to R code w/claude.ai, troubleshooting w/KB
+library(geepack)
+
+check_fit_GEE <- function(model.out, correlation = c("ar1", "unstructured", "exchangeable")) {
+  # Extract necessary information from the model
+  p <- length(coef(model.out))
+  N <- nrow(model.out$model)
+  m <- length(unique(model.out$id))
+  
+  # Calculate model-based and robust covariance matrices
+  cov_model <- model.out$geese$vbeta
+  cov_robust <- model.out$geese$vbeta.naiv
+  
+  # Calculate Q matrix and related statistics
+  Q <- solve(cov_model) %*% cov_robust
+  conebar <- sum(diag(Q)) / p
+  Q2 <- Q %*% Q
+  ctwobar <- sum(diag(Q2)) / p
+  dbar <- ctwobar - 2 * conebar + 1
+  
+  # Calculate quasi-likelihood
+  mu <- model.out$fitted.values
+  y <- model.out$y
+  family <- model.out$family$family
+  
+  if (family == "gaussian") {
+    q <- -0.5 * (y - mu)^2
+    disp_r <- mean((y - mu)^2)
+    disp_i <- sum((y - mu)^2) / (N - p) 
+  } else if (family == "binomial") {
+    q <- y * log(mu / (1 - mu)) + log(1 - mu)
+    disp_r <- disp_i <- 1
+  } else if (family == "poisson") {
+    q <- y * log(mu) - mu
+    disp_r <- disp_i <- 1
+  } else {
+    stop("Unsupported family")
+  }
+  
+  sumq <- sum(q)
+  
+  # Calculate QIC and related statistics
+  M <- (disp_r / disp_i) * cov_model
+  Mi <- solve(M)
+  Q_Pan <- Mi %*% cov_robust
+  cicp <- sum(diag(Q_Pan))
+  qicp <- -2 * sumq + 2 * cicp
+  
+  # Calculate number of correlation parameters
+  if (correlation == "unstructured") {
+    cluster_sizes <- table(model.out$id)
+    max_cluster_size <- max(cluster_sizes)
+    r <- max_cluster_size * (max_cluster_size - 1) / 2
+  } else {
+    r <- 1
+  }
+  
+  # Calculate qicA
+  adjust <- 2 * (p + r + 1) * (p + r + 2) / (m - p - r - 2)
+  qicA <- qicp + adjust
+  
+  # Calculate qicu
+  qicu <- -2 * sumq + 2 * p
+  
+  # Prepare results
+  results <- c(qicp = qicp, qicA = qicA, qicu = qicu, 
+               cone = abs(conebar - 1), ctwo = abs(ctwobar - 1), 
+               dbar = dbar, cicp = cicp)
+  
+  # Round results
+  results <- sapply(results, function(x) format(x, scientific = F, digits = 7))
+  
+  # Return results
+  return(results)
+}
+
+# Usage example:
+# model <- geeglm(y ~ x1 + x2, id = id, data = your_data, family = gaussian, corstr = "ar1")
+# fit_stats <- check_fit_GEE(model, correlation = "ar1")
+# print(fit_stats)
+
+
+#Function for getting fit statistics - based on Dr. Shults check_fit_QLS_Sep_2024.ado file, converted to R code w/claude.ai, troubleshooting w/KB
+check_fit_QLS <- function(model, correlation = c("ar1", "exchangeable", "markov")) {
+  correlation <- match.arg(correlation)
+  
+  # Extract necessary information from the model
+  p <- length(coef(model))
+  N <- nrow(model$model)
+  m <- length(unique(model$id))
+  
+  # Calculate model-based and robust covariance matrices
+  cov_model <- model$geese$vbeta
+  cov_robust <- model$geese$vbeta.naiv
+  
+  # Calculate Q matrix and related statistics
+  Q <- solve(cov_model) %*% cov_robust
+  conebar <- sum(diag(Q)) / p
+  Q2 <- Q %*% Q
+  ctwobar <- sum(diag(Q2)) / p
+  dbar <- ctwobar - 2 * conebar + 1
+  
+  # Calculate quasi-likelihood
+  mu <- model$fitted.values
+  y <- model$y
+  family <- model$family$family
+  
+  if (family == "gaussian") {
+    q <- -0.5 * (y - mu)^2
+    disp_r <- mean((y - mu)^2)
+    disp_i <- sum((y - mu)^2) / (N - p)
+  } else if (family == "binomial") {
+    q <- y * log(mu / (1 - mu)) + log(1 - mu)
+    disp_r <- disp_i <- 1
+  } else if (family == "poisson") {
+    q <- y * log(mu) - mu
+    disp_r <- disp_i <- 1
+  } else {
+    stop("Unsupported family")
+  }
+  
+  sumq <- sum(q)
+  
+  # Calculate QIC and related statistics
+  M <- (disp_r / disp_i) * cov_model
+  Mi <- try(solve(M), silent = TRUE)
+  if (inherits(Mi, "try-error")) {
+    warning("M matrix is singular. Using generalized inverse.")
+    Mi <- MASS::ginv(M)
+  }
+  Q_Pan <- Mi %*% cov_robust
+  cicp <- sum(diag(Q_Pan))
+  qicp <- -2 * sumq + 2 * cicp
+  
+  # Calculate number of correlation parameters
+  if (correlation == "exchangeable") {
+    r <- 1
+  } else if (correlation == "ar1") {
+    r <- 1
+  } else if (correlation == "markov") {
+    r <- 2
+  } else {
+    stop("Unsupported correlation structure")
+  }
+  
+  # Calculate qicA
+  adjust <- 2 * (p + r + 1) * (p + r + 2) / (m - p - r - 2)
+  qicA <- qicp + adjust
+  
+  # Calculate qicu
+  qicu <- -2 * sumq + 2 * p
+  
+  # Prepare results
+  results <- c(qicp = qicp, qicA = qicA, qicu = qicu, 
+               cone = abs(conebar - 1), ctwo = abs(ctwobar - 1), 
+               dbar = dbar, cicp = cicp)
+  
+  # Round results
+  results <- sapply(results, function(x) format(x, scientific = F, digits = 7))
+  
+  # Return results
+  return(results)
+}
+
+# Usage example:
+# library(qlspack)
+# model <- qlsgee(y ~ x1 + x2, id = id, data = your_data, family = gaussian(), corstr = "ar1")
+# fit_stats <- check_fit_QLS(model, correlation = "ar1")
